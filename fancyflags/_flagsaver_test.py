@@ -50,7 +50,7 @@ class FlagSaverTest(absltest.TestCase):
   def test_flagsaver_with_decorator_overrides(self):
 
   # Modeled after test_decorator_with_overrides in
-    https://github.com/abseil/abseil-py/blob/master/absl/testing/tests/flagsaver_test.py
+  # https://github.com/abseil/abseil-py/blob/master/absl/testing/tests/flagsaver_test.py  # pylint: disable=line-too-long
 
     @flagsaver.flagsaver(**{
         "string_flag": "new value",
