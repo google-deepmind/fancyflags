@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2021-01-15' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2021-01-19' } *-->
 
 TIP: Already a fancyflags user? Check out our [usage tips](#tips)!
 
@@ -128,6 +128,46 @@ could automatically generate a set of `replay.*` flags with:
 
 ```python
 ff.DEFINE_dict('replay', **ff.auto(replay_lib.Replay))
+```
+
+## Notes on using `flagsaver`
+
+abseil-py's [flagsaver](https://github.com/abseil/abseil-py/blob/master/absl/testing/flagsaver.py)
+module is useful for safely overriding flag values in test code. However, since
+it uses keyword arguments, overriding a flag with a dot in its name will result
+in a `SyntaxError`:
+
+```python
+# Invalid Python syntax.
+flagsaver.flagsaver(replay.capacity=100, replay.priority_exponent=0.5)
+```
+
+To work around this, first create a dictionary and then `**` unpack it:
+
+```python
+# Valid Python syntax.
+flagsaver.flagsaver(**{'replay.capacity': 100, 'replay.priority_exponent': 0.5})
+```
+
+Also watch out for this gotcha if setting dict flag values inside a `flagsaver`
+context. (If possible we recommend avoiding setting the flag values inside the
+context altogether, and passing the override values directly to the `flagsaver`
+function as above.)
+
+This syntax does not work properly.
+
+```python
+with flagsaver.flagsaver():
+  FLAGS.replay["capacity"] = 100
+# The original value will not be restored correctly.
+```
+
+This syntax _does_ work properly.
+
+```python
+with flagsaver.flagsaver():
+  FLAGS["replay.capacity"].value = 100
+# The original value *will* be restored correctly.
 ```
 
 ## fancyflags in more detail

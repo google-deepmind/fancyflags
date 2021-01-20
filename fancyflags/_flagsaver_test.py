@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Tests for fancyflags.FlagOverrider."""
+"""Tests for compatibility with absl.testing.flagsaver."""
 
 from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 import fancyflags as ff
 
 flags.DEFINE_string("string_flag", "unchanged", "flag to test with")
@@ -31,10 +32,10 @@ ff.DEFINE_dict(
 FLAGS = flags.FLAGS
 
 
-class FlagOverriderTest(absltest.TestCase):
+class FlagSaverTest(absltest.TestCase):
 
-  def test_flag_overrider_with_context_overrides(self):
-    with ff.FlagOverrider({
+  def test_flagsaver_with_context_overrides(self):
+    with flagsaver.flagsaver(**{
         "string_flag": "new value",
         "test_dict_flag.dict.nested": -1.0,
     }):
@@ -46,12 +47,12 @@ class FlagOverriderTest(absltest.TestCase):
     self.assertEqual("unchanged", FLAGS.string_flag)
     self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])
 
-  def test_flag_overrider_with_decorator_overrides(self):
+  def test_flagsaver_with_decorator_overrides(self):
 
-    # Modeled after test_decorator_with_overrides in
-    # absl/testing/tests/flagsaver_test.py
+  # Modeled after test_decorator_with_overrides in
+    https://github.com/abseil/abseil-py/blob/master/absl/testing/tests/flagsaver_test.py
 
-    @ff.FlagOverrider({
+    @flagsaver.flagsaver(**{
         "string_flag": "new value",
         "test_dict_flag.dict.nested": -1.0,
     })
@@ -65,12 +66,12 @@ class FlagOverriderTest(absltest.TestCase):
     self.assertEqual("unchanged", FLAGS.string_flag)
     self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])
 
-  def test_flag_overrider_with_context_overrides_twice(self):
+  def test_flagsaver_with_context_overrides_twice(self):
     # Checking that the flat -> dict flag sync works again after restoration.
     # This might fail if the underlying absl functions copied the dict as part
     # of restoration.
 
-    with ff.FlagOverrider({
+    with flagsaver.flagsaver(**{
         "string_flag": "new value",
         "test_dict_flag.dict.nested": -1.0,
     }):
@@ -84,7 +85,7 @@ class FlagOverriderTest(absltest.TestCase):
 
     # Same again!
 
-    with ff.FlagOverrider({
+    with flagsaver.flagsaver(**{
         "string_flag": "new value",
         "test_dict_flag.dict.nested": -1.0,
     }):
@@ -96,16 +97,17 @@ class FlagOverriderTest(absltest.TestCase):
     self.assertEqual("unchanged", FLAGS.string_flag)
     self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])
 
-  @absltest.skip("This is still buggy because flagsaver does not do deepcopies")
-  def test_flag_overrider_with_changes_within_context(self):
-    """Overrides within a FlagOverride context should be correctly restored."""
-    with ff.FlagOverrider({}):
+  @absltest.skip("This fails because flagsaver does not do deep copies")
+  def test_flagsaver_with_changes_within_context(self):
+    """Overrides within a flagsaver context should be correctly restored."""
+    with flagsaver.flagsaver():
       FLAGS.string_flag = "new_value"
       FLAGS["test_dict_flag.dict.nested"].value = -1.0
       FLAGS.test_dict_flag["unnested"] = -1.0
-    self.assertEqual("unchanged", FLAGS.string_flag)  # works
-    self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])  # works
-    self.assertEqual(4, FLAGS.test_dict_flag["unnested"])  # broken
+    self.assertEqual("unchanged", FLAGS.string_flag)  # Works.
+    self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])  # Works.
+    # TODO(b/177927157) Fix this behaviour.
+    self.assertEqual(4, FLAGS.test_dict_flag["unnested"])  # Broken.
 
 if __name__ == "__main__":
   absltest.main()

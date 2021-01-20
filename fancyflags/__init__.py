@@ -16,7 +16,6 @@
 
 from fancyflags import _auto
 from fancyflags import _definitions
-from fancyflags import _flag_overrider
 from fancyflags import _metadata
 # internal imports: usage_logging
 
@@ -24,7 +23,7 @@ __version__ = _metadata.__version__
 
 # pylint: disable=invalid-name
 
-# Function for automatically building FancyFlag defs from a callable signature.
+# Function for automatically building fancyflags defs from a callable signature.
 auto = _auto.auto
 
 DEFINE_dict = _definitions.DEFINE_dict
@@ -46,8 +45,5 @@ StringList = _definitions.StringList
 
 # Class for adding new flag types.
 Item = _definitions.Item
-
-# Class for temporarily overriding FancyFlags
-FlagOverrider = _flag_overrider.FlagOverrider
 
 # usage_logging: import
