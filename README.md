@@ -133,9 +133,13 @@ ff.DEFINE_dict('replay', **ff.auto(replay_lib.Replay))
 ## Notes on using `flagsaver`
 
 abseil-py's [flagsaver](https://github.com/abseil/abseil-py/blob/master/absl/testing/flagsaver.py)
-module is useful for safely overriding flag values in test code. However, since
-it uses keyword arguments, overriding a flag with a dot in its name will result
-in a `SyntaxError`:
+module is useful for safely overriding flag values in test code. Here's how to
+make it work well with fancyflags.
+
+### Making dotted names work with `flagsaver` keyword arguments.
+
+Since `flagsaver` relies on keyword arguments, overriding a flag with a dot in
+its name will result in a `SyntaxError`:
 
 ```python
 # Invalid Python syntax.
@@ -149,12 +153,14 @@ To work around this, first create a dictionary and then `**` unpack it:
 flagsaver.flagsaver(**{'replay.capacity': 100, 'replay.priority_exponent': 0.5})
 ```
 
-Also watch out for this gotcha if setting dict flag values inside a `flagsaver`
-context. (If possible we recommend avoiding setting the flag values inside the
-context altogether, and passing the override values directly to the `flagsaver`
-function as above.)
+### Be careful when setting flag values inside a `flagsaver` context
 
-This syntax does not work properly.
+If possible we recommend that you avoid setting the flag values inside the
+context altogether, and instead pass the override values directly to the
+`flagsaver` function as shown above. However, if you _do_ need to set values
+inside the context, be aware of this gotcha:
+
+This syntax does not work properly:
 
 ```python
 with flagsaver.flagsaver():
@@ -162,7 +168,7 @@ with flagsaver.flagsaver():
 # The original value will not be restored correctly.
 ```
 
-This syntax _does_ work properly.
+This syntax _does_ work properly:
 
 ```python
 with flagsaver.flagsaver():
