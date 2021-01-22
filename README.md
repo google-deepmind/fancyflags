@@ -121,7 +121,8 @@ definition, with `ff.auto`. This will work if:
 
 1.  The function or class constructor has type annotations.
 1.  Each argument has a default value.
-1.  The arguments are relatively simple types.
+1.  The types of the arguments are relatively simple types (`int`, `str`,
+    `bool`, `float`, or sequences thereof).
 
 For example, if we had a `Replay` class that satisfied these constraints, we
 could automatically generate a set of `replay.*` flags with:

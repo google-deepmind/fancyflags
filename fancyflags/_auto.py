@@ -15,49 +15,71 @@
 """Automatically builds flags from a callable signature."""
 
 import inspect
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
 
 from fancyflags import _definitions
 # internal imports: usage_logging
 
-TYPE_MAP = {
-    str: _definitions.String,
-    bool: _definitions.Boolean,
-    int: _definitions.Integer,
-    float: _definitions.Float,
-    List[int]: _definitions.Sequence,
+# TODO(b/178129474): Improve support for typing.Sequence subtypes.
+_TYPE_MAP = {
+    List[bool]: _definitions.Sequence,
     List[float]: _definitions.Sequence,
+    List[int]: _definitions.Sequence,
     List[str]: _definitions.Sequence,
-    Tuple[int]: _definitions.Sequence,
-    Tuple[float]: _definitions.Sequence,
-    Tuple[str]: _definitions.Sequence,
-    Sequence[int]: _definitions.Sequence,
+    Sequence[bool]: _definitions.Sequence,
     Sequence[float]: _definitions.Sequence,
+    Sequence[int]: _definitions.Sequence,
     Sequence[str]: _definitions.Sequence,
+    Tuple[bool]: _definitions.Sequence,
+    Tuple[float]: _definitions.Sequence,
+    Tuple[int]: _definitions.Sequence,
+    Tuple[str]: _definitions.Sequence,
+    bool: _definitions.Boolean,
+    float: _definitions.Float,
+    int: _definitions.Integer,
+    str: _definitions.String,
 }
 
 # Add optional versions of all types as well
-TYPE_MAP.update({Optional[tp]: parser for tp, parser in TYPE_MAP.items()})
+_TYPE_MAP.update({Optional[tp]: parser for tp, parser in _TYPE_MAP.items()})
+
+_MISSING_TYPE_ANNOTATION = "Missing type annotation for argument {name!r}"
+_UNSUPPORTED_ARGUMENT_TYPE = (
+    "No matching flag type for argument {{name!r}} with type annotation: "
+    "{{annotation}}\n"
+    "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP)))
+_MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
 
 
-def auto(callable_fn: Callable) -> Dict[str, _definitions.Item]:  # pylint: disable=g-bare-generic
+def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
   """Automatically builds fancyflag definitions from a callable's signature.
 
-  Usage like:
+  Example usage:
+  ```python
+  # Function
+  ff.DEFINE_dict('my_function_settings', **ff.auto(my_module.my_function))
 
-      ff.DEFINE_dict('my_function_settings', **ff.auto(my_module.my_function))
-
-  Or for class constructors:
-
-      ff.DEFINE_dict('my_class_settings', **ff.auto(my_module.MyClass))
+  # Class constructor
+  ff.DEFINE_dict('my_class_settings', **ff.auto(my_module.MyClass))
+  ```
 
   Args:
-    callable_fn: Generates flag definitions from this callable's signature. Must
-      have type annotations and defaults.
+    callable_fn: Generates flag definitions from this callable's signature. All
+      arguments must have type annotations and default values. The following
+      argument types are supported:
+
+        * `bool`, `float`, `int`, or `str` scalars
+        * Homogeneous sequences of these types
+        * Optional scalars or sequences of these types
 
   Returns:
-    Dictionary mapping each parameter name to a fancyflags `Item`, to be
-    splatted into `ff.DEFINE_dict`.
+    Mapping from parameter names to fancyflags `Item`s, to be splatted into
+    `ff.DEFINE_dict`.
+
+  Raises:
+    ValueError: If any of the arguments to `callable_fn` lacks a default value.
+    TypeError: If any of the arguments to `callable_fn` lacks a type annotation.
+    TypeError: If any of the arguments to `callable_fn` has an unsupported type.
   """
   # usage_logging: auto
 
@@ -73,15 +95,15 @@ def auto(callable_fn: Callable) -> Dict[str, _definitions.Item]:  # pylint: disa
     parameters = signature.parameters.values()
 
   for param in parameters:
+    if param.annotation is inspect.Signature.empty:
+      raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
     try:
-      ff_type = TYPE_MAP[param.annotation]
+      ff_type = _TYPE_MAP[param.annotation]
     except KeyError:
-      raise TypeError("Can't find fancyflags flag type for argument with "
-                      "type annotation: " + str(param.annotation))
-
+      raise TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
+          name=param.name, annotation=param.annotation))
     if param.default is inspect.Signature.empty:
-      raise ValueError("Arguments must have a default in order to be converted "
-                       "to flags: " + param.name)
+      raise ValueError(_MISSING_DEFAULT_VALUE.format(name=param.name))
 
     help_string = param.name  # TODO(b/177673667): Parse this from docstring.
     ff_dict[param.name] = ff_type(param.default, help_string)
