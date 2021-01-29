@@ -18,4 +18,4 @@ This is kept in a separate module so that it can be imported from setup.py, at
 a time when the package dependencies may not have been installed yet.
 """
 
-__version__ = 'a0.1'  # https://www.python.org/dev/peps/pep-0440/
+__version__ = '1.0'  # https://www.python.org/dev/peps/pep-0440/
