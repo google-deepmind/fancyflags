@@ -16,6 +16,26 @@ These dict flags:
 *   Can be unpacked into constructor/function calls, e.g.
     `replay(**FLAGS.replay)`.
 
+## Installation
+
+`fancyflags` can be installed from PyPI using `pip`:
+
+```shell
+pip install fancyflags
+```
+
+It can also be installed directly from our GitHub repository:
+
+```shell
+pip install git+git://github.com/deepmind/fancyflags.git
+```
+
+or alternatively by checking out a local copy of our repository and running:
+
+```shell
+pip install /path/to/local/fancyflags/
+```
+
 ## Quickstart
 
 Say we have a class `Replay`, with arguments `capacity`, `priority_exponent` and
