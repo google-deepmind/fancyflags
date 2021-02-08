@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2021-01-19' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2021-01-22' } *-->
 
 TIP: Already a fancyflags user? Check out our [usage tips](#tips)!
 
@@ -223,7 +223,7 @@ ff.Item             | Corresponding Flag
 `ff.StringList`     | `flags.DEFINE_list`
 `ff.MultiEnum`      | `ff.DEFINE_multi_enum`
 `ff.MultiEnumClass` | `flags.DEFINE_multi_enum_class`
-`ff.MultiString`    | `ff.DEFINE_multi_string`
+`ff.MultiString`    | `flags.DEFINE_multi_string`
 
 ### Defining a new `ff.Item`
 

@@ -23,6 +23,7 @@ from absl.testing import parameterized
 # definitions almost exactly corresponds to the public API, so aliasing the
 # import here for better illustrative tests.
 from fancyflags import _definitions as ff
+from fancyflags import _flags
 
 FLAGS = flags.FLAGS
 
@@ -178,7 +179,8 @@ class ExtractDefaultsTest(absltest.TestCase):
     self.assertEqual(result, expected)
 
   def test_invalid_container(self):
-    with self.assertRaisesRegex(TypeError, "list"):
+    expected_message = ff._NOT_A_DICT_OR_ITEM.format("list")
+    with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
       ff._extract_defaults(
           {
               "integer_field": ff.Integer(10, "Integer field"),
@@ -188,7 +190,8 @@ class ExtractDefaultsTest(absltest.TestCase):
       )
 
   def test_invalid_flat_leaf(self):
-    with self.assertRaisesRegex(TypeError, "int"):
+    expected_message = ff._NOT_A_DICT_OR_ITEM.format("int")
+    with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
       ff._extract_defaults(
           {
               "string_field": ff.String("default", "String field"),
@@ -197,7 +200,8 @@ class ExtractDefaultsTest(absltest.TestCase):
       )
 
   def test_invalid_nested_leaf(self):
-    with self.assertRaisesRegex(TypeError, "bool"):
+    expected_message = ff._NOT_A_DICT_OR_ITEM.format("bool")
+    with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
       ff._extract_defaults(
           {
               "string_field": ff.String("default", "String field"),
@@ -344,30 +348,6 @@ class MultiStringTest(parameterized.TestCase):
                       "multiple_entry_list": ["a", "b"]})
 
 
-class DefineMultiStringTest(absltest.TestCase):
-
-  # Follows test code in absl/flags/tests/flags_test.py
-
-  def test_definition(self):
-    num_existing_flags = len(FLAGS)
-
-    ff.DEFINE_multi_string("multistring", "default", "multistring flag")
-
-    self.assertLen(FLAGS, num_existing_flags + 1)
-
-    self.assertEqual(FLAGS.multistring, ["default"])
-    self.assertEqual(FLAGS.flag_values_dict()["multistring"], ["default"])
-    self.assertEqual(FLAGS["multistring"].default_as_str, '"[\'default\']"')
-
-  def test_parsing(self):
-    # There are more extensive tests for the parser in argument_parser_test.py.
-    # Here we just include an end-to-end example.
-
-    ff.DEFINE_multi_string("multistring0", "default", "multistring flag")
-    FLAGS(("./program", "--multistring0=one", "--multistring0=two"))
-    self.assertEqual(FLAGS.multistring0, ["one", "two"])
-
-
 class SerializationTest(absltest.TestCase):
 
   def test_basic_serialization(self):
@@ -379,7 +359,7 @@ class SerializationTest(absltest.TestCase):
     )
     # Parse flags, then serialize.
     FLAGS(("./program", "--to_serialize.boolean_field=True"))
-    self.assertEqual(FLAGS["to_serialize"].serialize(), ff._EMPTY)
+    self.assertEqual(FLAGS["to_serialize"].serialize(), _flags._EMPTY)
     self.assertEqual(FLAGS["to_serialize.boolean_field"].serialize(),
                      "--to_serialize.boolean_field=True")
     self.assertEqual(FLAGS["to_serialize.string_list_field"].serialize(),

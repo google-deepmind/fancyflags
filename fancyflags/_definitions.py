@@ -12,16 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Structured dict flag."""
+"""Functionality for defining `Item`s and dict flags."""
 
 import collections
 from absl import flags
 
 from fancyflags import _argument_parsers
+from fancyflags import _flags
 # internal imports: usage_logging
 
 SEPARATOR = "."
-_EMPTY = ""  # Empty serialized value returned by a dict flag.
+
+_NOT_A_DICT_OR_ITEM = """
+DEFINE_dict only supports flat or nested dictionaries, and these must contain
+`ff.Item`s or `ff.MultiItems. Found type {} in this definition.
+"""
 
 # Add this module to absl's exclusion set for determining the calling modules.
 flags.disclaim_key_flags()
@@ -118,7 +123,7 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
   #                    flagholder's .value attribute?
   # We register a dummy flag that returns `shared_dict` as a value.
   return flags.DEFINE_flag(
-      _DictFlag(
+      _flags.DictFlag(
           shared_dict,
           name=flag_name,
           default=shared_dict,
@@ -128,25 +133,25 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
       flag_values=flag_values)
 
 
-def define_flags(name, deferred_flags, flag_values=flags.FLAGS):
+def define_flags(name, name_to_item, flag_values=flags.FLAGS):
   """Defines dot-delimited flags from a flat or nested dict of `ff.Item`s.
 
   Args:
     name: The top-level name to prepend to each flag.
-    deferred_flags: A flat or nested dictionary, where each final value is an
+    name_to_item: A flat or nested dictionary, where each final value is an
       `ff.Item` such as `ff.String(...)` or `ff.Integer(...)`.
     flag_values: The `flags.FlagValues` instance to use. By default this is
       `flags.FLAGS`. Most users will not need to override this.
 
   Returns:
-    A flat or nested dictionary containing the default values in
-    `deferred_flags`. Overriding any of the flags defined by this function will
-    also updated the corresponding entry in the returned dictionary.
+    A flat or nested dictionary containing the default values in `name_to_item`.
+    Overriding any of the flags defined by this function will also update the
+    corresponding entry in the returned dictionary.
   """
   # Each flag that we will define holds a reference to  `shared_dict`, which is
   # a flat or nested dictionary containing the default values.
 
-  shared_dict = _extract_defaults(deferred_flags)
+  shared_dict = _extract_defaults(name_to_item)
 
   # We create flags for each leaf item (e.g. ff.Integer(...)).
 
@@ -162,107 +167,25 @@ def define_flags(name, deferred_flags, flag_values=flags.FLAGS):
     else:
       maybe_definition.define(namespace, {name: shared_dict}, flag_values)
 
-  for key, value in deferred_flags.items():
+  for key, value in name_to_item.items():
     recursively_define_flags(namespace=(name, key), maybe_definition=value)
 
   return shared_dict
 
 
-class _DictFlag(flags.Flag):
-  """Implements the shared dict mechanism. See also _ItemFlag."""
+def _extract_defaults(name_to_item):
+  """Converts a flat or nested dict into a flat or nested dict of defaults."""
 
-  def __init__(self, shared_dict, *args, **kwargs):
-    self._shared_dict = shared_dict
-    super().__init__(*args, **kwargs)
-
-  def _parse(self, value):
-    # A dict flag should not be overridable from the command line; only the
-    # dotted Item flags should be. However, the _parse() method will still be
-    # called in two situations:
-
-    # 1. In the base Flag's __init__ method, which calls _parse() to process the
-    #    default value, which will be the shared dict.
-    # 2. When processing command line overrides. We don't want to allow this
-    #    normally, however some libraries will serialize and deserialize all
-    #    flags, e.g. to pass values between processes, so we accept a dummy
-    #    empty serialized value for these cases. It's unlikely users will try to
-    #    set the dict flag to an empty string from the command line.
-    if value is self._shared_dict or value == _EMPTY:
-      return self._shared_dict
-    raise flags.IllegalFlagValueError(
-        "Can't override a dict flag directly. Did you mean to override one of "
-        "its `Item`s instead?")
-
-  def serialize(self):
-    return _EMPTY
-
-  def flag_type(self):
-    return "dict"
-
-
-# TODO(b/170423907): Pytype doesn't correctly infer that these have type
-#                    `property`.
-_flag_value_property = flags.Flag.value  # type: property
-_multi_flag_value_property = flags.MultiFlag.value  # type: property
-
-
-class _ItemFlag(flags.Flag):
-  """Updates a shared dict whenever its own value changes.
-
-  See also the _DictFlag and Item classes for usage.
-  """
-
-  def __init__(self, shared_dict, namespace, *args, **kwargs):
-    self._shared_dict = shared_dict
-    self._namespace = namespace
-    super().__init__(*args, **kwargs)
-
-  # `super().value = value` doesn't work, see https://bugs.python.org/issue14965
-  @_flag_value_property.setter
-  def value(self, value):
-    _flag_value_property.fset(self, value)
-    self._update_shared_dict()
-
-  def parse(self, argument):
-    super().parse(argument)
-    self._update_shared_dict()
-
-  def _update_shared_dict(self):
-    d = self._shared_dict
-    for name in self._namespace[:-1]:
-      d = d[name]
-    d[self._namespace[-1]] = self.value
-
-
-class _MultiFlag(flags.MultiFlag):
-  """Updates a shared dict whenever its own value changes.
-
-  Used for flags that can appear multiple times on the command line.
-  See also the _DictFlag and Item classes for usage.
-  """
-
-  def __init__(self, shared_dict, namespace, *args, **kwargs):
-    self._shared_dict = shared_dict
-    self._namespace = namespace
-    super().__init__(*args, **kwargs)
-
-  # `super().value = value` doesn't work, see https://bugs.python.org/issue14965
-  @_multi_flag_value_property.setter
-  def value(self, value):
-    _multi_flag_value_property.fset(self, value)
-    self._update_shared_dict()
-
-  def parse(self, argument):
-    super().parse(argument)
-    self._update_shared_dict()
-
-  def _update_shared_dict(self):
-    d = self._shared_dict
-    for name in self._namespace[:-1]:
-      d = d[name]
-    d[self._namespace[-1]] = self.value
-
-# Public flag items.
+  result = {}
+  for key, value in name_to_item.items():
+    if isinstance(value, (Item, MultiItem)):
+      result[key] = value.default
+    elif isinstance(value, dict):
+      result[key] = _extract_defaults(value)
+    else:
+      type_name = type(value).__name__
+      raise TypeError(_NOT_A_DICT_OR_ITEM.format(type_name))
+  return result
 
 
 class Item:
@@ -313,7 +236,7 @@ class Item:
       flag_values: The `flags.FlagValues` instance to use.
     """
     flags.DEFINE_flag(
-        _ItemFlag(
+        _flags.ItemFlag(
             shared_dict,
             namespace,
             parser=self._parser,
@@ -322,6 +245,85 @@ class Item:
             default=self.default,
             help_string=self._help_string),
         flag_values=flag_values)
+
+
+class Boolean(Item):
+
+  def __init__(self, default, help_string):
+    super().__init__(default, help_string, flags.BooleanParser())
+
+
+# TODO(b/177673597) Better document the different enum class options and
+#                   possibly recommend some over others.
+
+
+class Enum(Item):
+
+  def __init__(self, default, enum_values, help_string, case_sensitive=True):
+    parser = flags.EnumParser(enum_values, case_sensitive)
+    super().__init__(default, help_string, parser)
+
+
+class EnumClass(Item):
+  """Matches behaviour of flags.DEFINE_enum_class."""
+
+  def __init__(self, default, enum_class, help_string):
+    parser = flags.EnumClassParser(enum_class)
+    super().__init__(default, help_string, parser)
+
+
+class Float(Item):
+
+  def __init__(self, default, help_string):
+    super().__init__(default, help_string, flags.FloatParser())
+
+
+class Integer(Item):
+
+  def __init__(self, default, help_string):
+    super().__init__(default, help_string, flags.IntegerParser())
+
+
+class Sequence(Item):
+  r"""Defines a flag for a list or tuple of simple numeric types or strings.
+
+  Here is an example of overriding a Sequence flag within a dict-flag named
+  "settings" from the command line, with a list of values.
+
+  ```
+  --settings.sequence=[1,2,3]
+  ```
+
+  To include spaces, either quote the entire literal, or escape spaces as:
+
+  ```
+  --settings.sequence="[1, 2, 3]"
+  --settings.sequence=[1,\ 2,\ 3]
+  ```
+  """
+
+  def __init__(self, default, help_string):
+    super().__init__(default, help_string, _argument_parsers.SequenceParser())
+
+
+class String(Item):
+
+  def __init__(self, default, help_string):
+    super().__init__(default, help_string, flags.ArgumentParser())
+
+
+class StringList(Item):
+  """A flag that implements the same behavior as absl.flags.DEFINE_list.
+
+  Can be overwritten as --my_flag="a,list,of,commaseparated,strings"
+  """
+
+  def __init__(self, default, help_string):
+    serializer = flags.CsvListSerializer(",")
+    super().__init__(default, help_string, flags.ListParser(), serializer)
+
+
+# MultiFlag-related functionality.
 
 
 class MultiItem:
@@ -360,7 +362,7 @@ class MultiItem:
 
   def define(self, namespace, shared_dict, flag_values):
     flags.DEFINE_flag(
-        _MultiFlag(
+        _flags.MultiItemFlag(
             shared_dict,
             namespace,
             parser=self._parser,
@@ -369,74 +371,6 @@ class MultiItem:
             default=self.default,
             help_string=self._help_string),
         flag_values=flag_values)
-
-
-class String(Item):
-
-  def __init__(self, default, help_string):
-    super().__init__(default, help_string, flags.ArgumentParser())
-
-
-class MultiString(MultiItem):
-
-  def __init__(self, default, help_string):
-    parser = flags.ArgumentParser()
-    serializer = flags.ArgumentSerializer()
-    super().__init__(default, help_string, parser, serializer)
-
-
-def DEFINE_multi_string(  # pylint: disable=invalid-name,redefined-builtin
-    name, default, help, **args):
-  """Defines flag for MultiString."""
-  parser = flags.ArgumentParser()
-  serializer = flags.ArgumentSerializer()
-  # usage_logging: multi_string
-  flags.DEFINE_multi(parser, serializer, name, default, help, **args)
-
-
-class Float(Item):
-
-  def __init__(self, default, help_string):
-    super().__init__(default, help_string, flags.FloatParser())
-
-
-class Integer(Item):
-
-  def __init__(self, default, help_string):
-    super().__init__(default, help_string, flags.IntegerParser())
-
-
-class Boolean(Item):
-
-  def __init__(self, default, help_string):
-    super().__init__(default, help_string, flags.BooleanParser())
-
-
-class Enum(Item):
-
-  def __init__(self, default, enum_values, help_string, case_sensitive=True):
-    parser = flags.EnumParser(enum_values, case_sensitive)
-    super().__init__(default, help_string, parser)
-
-
-# TODO(b/177673597) Better document the different enum class options and
-#                   possibly recommend some over others.
-
-
-class EnumClass(Item):
-  """Matches behaviour of flags.DEFINE_enum_class."""
-
-  def __init__(self, default, enum_class, help_string):
-    parser = flags.EnumClassParser(enum_class)
-    super().__init__(default, help_string, parser)
-
-
-class MultiEnumClass(MultiItem):
-  """Matches behaviour of flags.DEFINE_multi_enum_class."""
-
-  def __init__(self, default, enum_class, help_string):
-    parser = flags.EnumClassParser(enum_class)
-    super().__init__(default, help_string, parser)
 
 
 class MultiEnum(Item):
@@ -449,6 +383,26 @@ class MultiEnum(Item):
     super().__init__(default, help_string, parser, serializer)
 
 
+class MultiEnumClass(MultiItem):
+  """Matches behaviour of flags.DEFINE_multi_enum_class."""
+
+  def __init__(self, default, enum_class, help_string):
+    parser = flags.EnumClassParser(enum_class)
+    super().__init__(default, help_string, parser)
+
+
+class MultiString(MultiItem):
+  """Matches behaviour of flags.DEFINE_multi_string."""
+
+  def __init__(self, default, help_string):
+    parser = flags.ArgumentParser()
+    serializer = flags.ArgumentSerializer()
+    super().__init__(default, help_string, parser, serializer)
+
+
+# Misc DEFINE_*s.
+
+
 def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
     name, default, enum_values, help, flag_values=flags.FLAGS, **args):
   """Defines flag for MultiEnum."""
@@ -458,28 +412,6 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
   flags.DEFINE(parser, name, default, help, flag_values, serializer, **args)
 
 
-class Sequence(Item):
-  r"""Defines a flag for a list or tuple of simple numeric types or strings.
-
-  Here is an example of overriding a Sequence flag within a dict-flag named
-  "settings" from the command line, with a list of values.
-
-  ```
-  --settings.sequence=[1,2,3]
-  ```
-
-  To include spaces, either quote the entire literal, or escape spaces as:
-
-  ```
-  --settings.sequence="[1, 2, 3]"
-  --settings.sequence=[1,\ 2,\ 3]
-  ```
-  """
-
-  def __init__(self, default, help_string):
-    super().__init__(default, help_string, _argument_parsers.SequenceParser())
-
-
 def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
     name, default, help, flag_values=flags.FLAGS, **args):
   """Defines a flag for a list or tuple of simple types. See `Sequence` docs."""
@@ -487,31 +419,3 @@ def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
   serializer = flags.ArgumentSerializer()
   # usage_logging: sequence
   flags.DEFINE(parser, name, default, help, flag_values, serializer, **args)
-
-
-class StringList(Item):
-  """A flag that implements the same behavior as absl.flags.DEFINE_list.
-
-  Can be overwritten as --my_flag="a,list,of,commaseparated,strings"
-  """
-
-  def __init__(self, default, help_string):
-    serializer = flags.CsvListSerializer(",")
-    super().__init__(default, help_string, flags.ListParser(), serializer)
-
-
-def _extract_defaults(mapping):
-  """Converts a flat or nested dict into a flat or nested dict of defaults."""
-
-  result = {}
-  for key, value in mapping.items():
-    if isinstance(value, (Item, MultiItem)):
-      result[key] = value.default
-    elif isinstance(value, dict):
-      result[key] = _extract_defaults(value)
-    else:
-      type_name = type(value).__name__
-      raise TypeError("DEFINE_dict only supports flat or nested dictionaries, "
-                      "and these must contain `ff.Item`s or `ff.MultiItems. "
-                      "Found type {} in this definition.".format(type_name))
-  return result
