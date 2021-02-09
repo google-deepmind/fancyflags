@@ -269,7 +269,9 @@ class EnumClass(Item):
 
   def __init__(self, default, enum_class, help_string):
     parser = flags.EnumClassParser(enum_class)
-    super().__init__(default, help_string, parser)
+    super().__init__(
+        default, help_string, parser,
+        flags.EnumClassSerializer(lowercase=False))
 
 
 class Float(Item):
@@ -388,7 +390,8 @@ class MultiEnumClass(MultiItem):
 
   def __init__(self, default, enum_class, help_string):
     parser = flags.EnumClassParser(enum_class)
-    super().__init__(default, help_string, parser)
+    serializer = flags.EnumClassListSerializer(",", lowercase=False)
+    super().__init__(default, help_string, parser, serializer)
 
 
 class MultiString(MultiItem):

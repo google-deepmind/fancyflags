@@ -356,15 +356,44 @@ class SerializationTest(absltest.TestCase):
         integer_field=ff.Integer(1, "integer field"),
         boolean_field=ff.Boolean(False, "boolean field"),
         string_list_field=ff.StringList(["a", "b", "c"], "string list field"),
+        enum_class_field=ff.EnumClass(MyEnum.A, MyEnum, "my enum field"),
     )
+
+    initial_dict_value = FLAGS["to_serialize"].value.copy()
+
     # Parse flags, then serialize.
-    FLAGS(("./program", "--to_serialize.boolean_field=True"))
+    FLAGS(["./program",
+           "--to_serialize.boolean_field=True",
+           "--to_serialize.integer_field", "1337",
+           "--to_serialize.string_list_field=d,e,f",
+           "--to_serialize.enum_class_field=B",
+           ])
     self.assertEqual(FLAGS["to_serialize"].serialize(), _flags._EMPTY)
     self.assertEqual(FLAGS["to_serialize.boolean_field"].serialize(),
                      "--to_serialize.boolean_field=True")
     self.assertEqual(FLAGS["to_serialize.string_list_field"].serialize(),
-                     "--to_serialize.string_list_field=a,b,c")
+                     "--to_serialize.string_list_field=d,e,f")
 
+    parsed_dict_value = FLAGS["to_serialize"].value.copy()
+
+    self.assertDictEqual(parsed_dict_value, {
+        "boolean_field": True,
+        "integer_field": 1337,
+        "string_list_field": ["d", "e", "f"],
+        "enum_class_field": MyEnum.B,
+    })
+    self.assertNotEqual(FLAGS["to_serialize"].value, initial_dict_value)
+
+    # test a round trip
+    serialized_args = [
+        FLAGS[name].serialize() for name in FLAGS if name.startswith(
+            "to_serialize.")]
+
+    FLAGS.unparse_flags()  # Reset to defaults
+    self.assertDictEqual(FLAGS["to_serialize"].value, initial_dict_value)
+
+    FLAGS(["./program"] + serialized_args)
+    self.assertDictEqual(FLAGS["to_serialize"].value, parsed_dict_value)
 
 if __name__ == "__main__":
   absltest.main()
