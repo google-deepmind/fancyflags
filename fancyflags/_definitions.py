@@ -21,6 +21,9 @@ from fancyflags import _argument_parsers
 from fancyflags import _flags
 # internal imports: usage_logging
 
+from absl.flags._argument_parser import EnumClassSerializer
+from absl.flags._argument_parser import EnumClassListSerializer
+
 SEPARATOR = "."
 
 _NOT_A_DICT_OR_ITEM = """
@@ -271,7 +274,7 @@ class EnumClass(Item):
     parser = flags.EnumClassParser(enum_class)
     super().__init__(
         default, help_string, parser,
-        flags.EnumClassSerializer(lowercase=False))
+        EnumClassSerializer(lowercase=False))
 
 
 class Float(Item):
@@ -390,7 +393,7 @@ class MultiEnumClass(MultiItem):
 
   def __init__(self, default, enum_class, help_string):
     parser = flags.EnumClassParser(enum_class)
-    serializer = flags.EnumClassListSerializer(",", lowercase=False)
+    serializer = EnumClassListSerializer(",", lowercase=False)
     super().__init__(default, help_string, parser, serializer)
 
 
