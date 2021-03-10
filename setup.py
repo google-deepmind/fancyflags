@@ -25,7 +25,7 @@ setup(
     author='DeepMind',
     license='Apache License, Version 2.0',
     packages=find_packages(),
-    install_requires=['absl-py'],
+    install_requires=['absl-py>=0.12.0'],
     tests_require=['pytest'],
     classifiers=[
         'Programming Language :: Python',
