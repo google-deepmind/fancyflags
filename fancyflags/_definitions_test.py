@@ -14,6 +14,7 @@
 # ============================================================================
 """Tests for definitions."""
 
+import copy
 import enum
 
 from absl import flags
@@ -271,7 +272,7 @@ class DefineSequenceTest(absltest.TestCase):
 
     self.assertEqual(FLAGS.sequence, [1, 2, 3])
     self.assertEqual(FLAGS.flag_values_dict()["sequence"], [1, 2, 3])
-    self.assertEqual(FLAGS["sequence"].default_as_str, "'[1, 2, 3]'")
+    self.assertEqual(FLAGS["sequence"].default_as_str, "'[1, 2, 3]'")  # pytype: disable=attribute-error
 
   def test_parsing(self):
     # There are more extensive tests for the parser in argument_parser_test.py.
@@ -299,7 +300,7 @@ class DefineMultiEnumTest(absltest.TestCase):
 
     self.assertEqual(FLAGS.multienum, [1, 2, 3])
     self.assertEqual(FLAGS.flag_values_dict()["multienum"], [1, 2, 3])
-    self.assertEqual(FLAGS["multienum"].default_as_str, "'[1, 2, 3]'")
+    self.assertEqual(FLAGS["multienum"].default_as_str, "'[1, 2, 3]'")  # pytype: disable=attribute-error
 
   def test_parsing(self):
     # There are more extensive tests for the parser in argument_parser_test.py.
@@ -359,7 +360,7 @@ class SerializationTest(absltest.TestCase):
         enum_class_field=ff.EnumClass(MyEnum.A, MyEnum, "my enum field"),
     )
 
-    initial_dict_value = FLAGS["to_serialize"].value.copy()
+    initial_dict_value = copy.deepcopy(FLAGS["to_serialize"].value)
 
     # Parse flags, then serialize.
     FLAGS(["./program",
@@ -374,7 +375,7 @@ class SerializationTest(absltest.TestCase):
     self.assertEqual(FLAGS["to_serialize.string_list_field"].serialize(),
                      "--to_serialize.string_list_field=d,e,f")
 
-    parsed_dict_value = FLAGS["to_serialize"].value.copy()
+    parsed_dict_value = copy.deepcopy(FLAGS["to_serialize"].value)
 
     self.assertDictEqual(parsed_dict_value, {
         "boolean_field": True,

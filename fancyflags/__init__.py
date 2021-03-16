@@ -15,6 +15,7 @@
 """An extended flags library. The main component is a nested dict flag."""
 
 from fancyflags import _auto
+from fancyflags import _define_auto
 from fancyflags import _definitions
 from fancyflags import _metadata
 # internal imports: usage_logging
@@ -29,6 +30,7 @@ auto = _auto.auto
 DEFINE_dict = _definitions.DEFINE_dict
 define_flags = _definitions.define_flags
 DEFINE_sequence = _definitions.DEFINE_sequence
+DEFINE_auto = _define_auto.DEFINE_auto
 
 # Currently supported types inside the dict.
 Boolean = _definitions.Boolean

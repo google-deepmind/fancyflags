@@ -4,8 +4,8 @@
 
 TIP: Already a fancyflags user? Check out our [usage tips](#tips)!
 
-Defines a flat or nested dict flag, with familiar "dot" overrides for fields.
-These dict flags:
+The main feature of `fancyflags` is a nested dict flag, with familiar "dot"
+overrides for fields. These dict flags:
 
 *   Can be overridden with “dot” notation, similar to
     [`config_flags`](https://github.com/google/ml_collections#usage).
@@ -38,13 +38,13 @@ pip install /path/to/local/fancyflags/
 
 ## Quickstart
 
-Say we have a class `Replay`, with arguments `capacity`, `priority_exponent` and
-others. We can define a corresponding dict flag in our main script
+If we have a class `Replay`, with arguments `capacity`, `priority_exponent` and
+others, we can define a corresponding dict flag in our main script
 
 ```python
 import fancyflags as ff
 
-ff.DEFINE_dict(
+_REPLAY_FLAG = ff.DEFINE_dict(
     "replay",
     capacity=ff.Integer(int(1e6), "Maximum replay capacity."),
     priority_exponent=ff.Float(0.6, "Priority exponent."),
@@ -57,10 +57,10 @@ ff.DEFINE_dict(
 and `**unpack` the values directly into the `Replay` constructor
 
 ```python
-replay = replay_lib.Replay(**FLAGS.replay)
+replay_lib.Replay(**REPLAY_FLAG.value)
 ```
 
-i.e. this creates a flag named `replay`, with a default value of
+`ff.DEFINE_dict` creates a flag named `replay`, with a default value of
 
 ```python
 {
@@ -71,8 +71,9 @@ i.e. this creates a flag named `replay`, with a default value of
 }
 ```
 
-and, for each item in the dict, a dot-delimited flag that can be overridden from
-the command line. In this example the generated command line flags would be
+For each item in the dict, `ff.DEFINE_dict` also generates a dot-delimited flag
+that can be overridden from the command line. In this example the generated
+flags would be
 
 ```
 replay.capacity
@@ -82,13 +83,15 @@ replay.removal_strategy
 ```
 
 Overriding one of these flags from the command line updates the corresponding
-entry in the dict flag (accessed via `FLAGS.replay`). For example, the override
+entry in the dict flag. The value of the dict flag can be accessed by the return
+value of `ff.DEFINE_dict` (`_REPLAY_FLAG.value` in the example above), or via the
+`FLAGS.replay` attribute of the `absl.flags` module. For example, the override
 
 ```shell
 python script_name.py -- --replay.capacity=2000 --replay.removal_strategy=max_value
 ```
 
-sets the values in `FLAGS.replay` to
+sets `_REPLAY_FLAG.value` to
 
 ```python
 {
@@ -104,7 +107,7 @@ sets the values in `FLAGS.replay` to
 fancyflags also supports nested dictionaries:
 
 ```python
-ff.DEFINE_dict(
+_NESTED_REPLAY_FLAG = ff.DEFINE_dict(
     "replay",
     capacity=ff.Integer(int(1e6), "Maximum replay capacity."),
     exponents=dict(
@@ -114,7 +117,7 @@ ff.DEFINE_dict(
 )
 ```
 
-In this example, the default value of the `replay` flag would be
+In this example, `_NESTED_REPLAY_FLAG.value` would be
 
 ```python
 {
@@ -134,22 +137,67 @@ replay.exponents.priority
 replay.exponents.importance_sampling
 ```
 
+
+## "Auto" flags for functions and other structures.
+
+`fancyflags` also provides an `ff.DEFINE_auto` flag generate flags corresponding
+to a callable. The return value will also carry the correct type information.
+
+This callable could be a constructor
+
+```python
+_REPLAY = ff.DEFINE_auto('replay', replay_lib.Replay, "replay flag")
+```
+
+or it could be a dataclass
+
+```python
+@dataclasses.dataclass
+class DataSettings:
+  dataset_name: str = 'mnist'
+  split: str = 'train'
+  batch_size: int = 128
+
+# In main script.
+# Exposes flags: --data.dataset_name --data.split and --data.batch_size.
+_DATA_SETTINGS = ff.DEFINE_auto('data', datasets.DataSettings, 'Data config')
+
+def main(argv):
+  # del argv  # Unused.
+  dataset = datasets.load(_DATA_SETTINGS.value())
+  # ...
+```
+
+or any other callable that satisfies the `ff.auto` requirements. It's also
+possible to override keyword arguments in the call to `.value()`, e.g.
+
+```python
+test_settings = _DATA_SETTINGS.value(split='test')
+```
+
 ## Defining a dict flag from a function or constructor.
 
-fancyflags can generate a dict flag automatically based on a function or class
-definition, with `ff.auto`. This will work if:
+The function `ff.auto` returns a dictionary of `ff.Items` given a function or
+constructor. This is used to build `ff.DEFINE_dict` and is also exposed in the
+top-level API.
+
+`ff.auto` can be used with `ff.DEFINE_dict` as follows:
+
+```python
+_WRITER_KWARGS = ff.DEFINE_dict('writer', **ff.auto(logging.Writer))
+```
+`ff.auto` may be useful for creating kwarg dictionaries in situations where
+`ff.DEFINE_auto` is not suitable, for example to pass kwargs into nested
+function calls.
+
+## Auto requirements
+
+`ff.DEFINE_auto` and `ff.auto` will work if:
 
 1.  The function or class constructor has type annotations.
 1.  Each argument has a default value.
 1.  The types of the arguments are relatively simple types (`int`, `str`,
     `bool`, `float`, or sequences thereof).
-
-For example, if we had a `Replay` class that satisfied these constraints, we
-could automatically generate a set of `replay.*` flags with:
-
-```python
-ff.DEFINE_dict('replay', **ff.auto(replay_lib.Replay))
-```
 
 ## Notes on using `flagsaver`
 
@@ -246,39 +294,38 @@ class SpaceSepList(ff.Item):
 Note that custom `ff.Item` definitions do not _need_ to be added to the
 fancyflags library to work.
 
-### Direct syntax
+### Defining `Item` flags only
 
-It's also possible to skip the `DEFINE_dict` call:
+We also expose a `define_flags` function, which defines flags from a flat or
+nested dictionary that maps names to `ff.Item`s. This function is used as part
+of `ff.DEFINE_dict` and `ff.DEFINE_auto`, and may be useful for writing
+extensions on top of `fancyflags`.
 
 ```python
-replay_defs = dict(
-    capacity=ff.Integer(int(1e6), "Maximum replay capacity."),
-    priority_exponent=ff.Float(0.6, "Priority exponent."),
-    importance_sampling_exponent=ff.Float(0.4, "Importance sampling exponent."),
-    removal_strategy=ff.Enum("fifo", ["rand", "fifo", "max_value"],
-                             "The prioritization method for replay removal.")
+_writer_items = dict(
+    path=ff.String('/path/to/logdir', "Output directory."),
+    log_every_n=ff.Integer(100, "Number of calls between writes to disk."),
 )
 
-REPLAY = ff.define_flags("replay", replay_defs)
+_WRITER_KWARGS = ff.define_flags("writer", _writer_items)
 ```
 
-This example only defines the dot-delimited flags and does _not_ define a
-dict-flag. The returned variable `REPLAY` holds the default values. Any
-overrides to the dot-delimited flags will also update the corresponding item in
-`REPLAY`.
+This example defines the flags `replay.capacity` and `replay.priority_exponent`
+only: does _not_ define a dict-flag. The return value (`REPLAY`) is a
+dictionary that contains the default values. Any overrides to the individual
+flags will also update the corresponding item in this dictionary.
 
 ### Tips
 
-Any direct access, e.g. `FLAGS.dict_flag['item']` is an indication that you
-might want to tweak your flag arrangement:
+Any direct access, e.g. `_DICT_FLAG.value['item']` is an indication that you
+may want to change your flag structure:
 
 *   Try to align dict flags with constructors or functions, so that you always
     `**unpack` the items into their corresponding constructor or function.
 *   If you need to access an item in a dict directly, e.g. because its value is
-    used in multiple places, it likely makes sense to move that item to its own
-    plain flag.
+    used in multiple places, consider moving that item to its own plain flag.
 *   Check to see if you should have `**unpacked` somewhere up the call-stack,
     and convert function "config" args to individual items if needed.
 *   Don't group things under a dict flag just because they're thematically
-    related, and don't have one catch-all dict flag. Instead define individual
+    related, and don't have one catch-all dict flag. Instead, define individual
     dict flags to match the constructor or function calls as needed.

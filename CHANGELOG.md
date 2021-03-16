@@ -4,6 +4,8 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+* Added `ff.DEFINE_auto`.
+
 ## [1.0]
 
 Release date: 2021-02-08
