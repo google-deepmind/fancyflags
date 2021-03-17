@@ -26,7 +26,10 @@ setup(
     license='Apache License, Version 2.0',
     packages=find_packages(),
     install_requires=['absl-py>=0.12.0'],
-    tests_require=['pytest'],
+    tests_require=[
+        'pytest',
+        'dataclasses ; python_version<"3.7"',
+    ],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
