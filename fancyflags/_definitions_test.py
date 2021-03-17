@@ -45,9 +45,8 @@ class FancyflagsTest(absltest.TestCase):
     flagholder = ff.DEFINE_dict(
         "flat_dict",
         integer_field=ff.Integer(1, "integer field"),
-        string_field=ff.String("", "string field"),
-        string_list_field=ff.StringList(["a", "b", "c"], "string list field")
-    )
+        string_field=ff.String(""),
+        string_list_field=ff.StringList(["a", "b", "c"], "string list field"))
 
     # This should return a single dict with the default values specified above.
     expected = {
@@ -61,6 +60,12 @@ class FancyflagsTest(absltest.TestCase):
     # These flags should also exist, although we won't access them in practice.
     self.assertEqual(FLAGS["flat_dict.integer_field"].value, 1)
     self.assertEqual(FLAGS["flat_dict.string_field"].value, "")
+
+    # Custom help string.
+    self.assertEqual(FLAGS["flat_dict.integer_field"].help, "integer field")
+    # Default help string.
+    self.assertEqual(FLAGS["flat_dict.string_field"].help,
+                     "flat_dict.string_field")
 
   def test_define_nested(self):
     flagholder = ff.DEFINE_dict(

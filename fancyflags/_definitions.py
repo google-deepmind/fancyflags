@@ -196,7 +196,8 @@ class Item:
 
     Args:
       default: Default value of the flag that this instance will create.
-      help_string: Help string for the flag that this instance will create.
+      help_string: Help string for the flag that this instance will create. If
+        `None`, then the dotted flag name will be used as the help string.
       parser: A `flags.ArgumentParser` used to parse command line input.
       serializer: An optional custom `flags.ArgumentSerializer`. By default, the
         flag defined by this class will use an instance of the base
@@ -235,21 +236,23 @@ class Item:
         the flat or nested key when storing the parsed value.
       flag_values: The `flags.FlagValues` instance to use.
     """
+    name = SEPARATOR.join(namespace)
+    help_string = name if self._help_string is None else self._help_string
     flags.DEFINE_flag(
         _flags.ItemFlag(
             shared_dict,
             namespace,
             parser=self._parser,
             serializer=self._serializer,
-            name=SEPARATOR.join(namespace),
+            name=name,
             default=self.default,
-            help_string=self._help_string),
+            help_string=help_string),
         flag_values=flag_values)
 
 
 class Boolean(Item):
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     super().__init__(default, help_string, flags.BooleanParser())
 
 
@@ -259,7 +262,11 @@ class Boolean(Item):
 
 class Enum(Item):
 
-  def __init__(self, default, enum_values, help_string, case_sensitive=True):
+  def __init__(self,
+               default,
+               enum_values,
+               help_string=None,
+               case_sensitive=True):
     parser = flags.EnumParser(enum_values, case_sensitive)
     super().__init__(default, help_string, parser)
 
@@ -267,7 +274,7 @@ class Enum(Item):
 class EnumClass(Item):
   """Matches behaviour of flags.DEFINE_enum_class."""
 
-  def __init__(self, default, enum_class, help_string):
+  def __init__(self, default, enum_class, help_string=None):
     parser = flags.EnumClassParser(enum_class)
     super().__init__(
         default, help_string, parser,
@@ -276,13 +283,13 @@ class EnumClass(Item):
 
 class Float(Item):
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     super().__init__(default, help_string, flags.FloatParser())
 
 
 class Integer(Item):
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     super().__init__(default, help_string, flags.IntegerParser())
 
 
@@ -304,13 +311,13 @@ class Sequence(Item):
   ```
   """
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     super().__init__(default, help_string, _argument_parsers.SequenceParser())
 
 
 class String(Item):
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     super().__init__(default, help_string, flags.ArgumentParser())
 
 
@@ -320,7 +327,7 @@ class StringList(Item):
   Can be overwritten as --my_flag="a,list,of,commaseparated,strings"
   """
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     serializer = flags.CsvListSerializer(",")
     super().__init__(default, help_string, flags.ListParser(), serializer)
 
@@ -363,22 +370,24 @@ class MultiItem:
       self._serializer = serializer
 
   def define(self, namespace, shared_dict, flag_values):
+    name = SEPARATOR.join(namespace)
+    help_string = name if self._help_string is None else self._help_string
     flags.DEFINE_flag(
         _flags.MultiItemFlag(
             shared_dict,
             namespace,
             parser=self._parser,
             serializer=self._serializer,
-            name=SEPARATOR.join(namespace),
+            name=name,
             default=self.default,
-            help_string=self._help_string),
+            help_string=help_string),
         flag_values=flag_values)
 
 
 class MultiEnum(Item):
   """Defines a flag for lists of values of any type, matched to enum_values."""
 
-  def __init__(self, default, enum_values, help_string):
+  def __init__(self, default, enum_values, help_string=None):
     parser = _argument_parsers.MultiEnumParser(enum_values)
     serializer = flags.ArgumentSerializer()
     _ = parser.parse(enum_values)
@@ -388,7 +397,7 @@ class MultiEnum(Item):
 class MultiEnumClass(MultiItem):
   """Matches behaviour of flags.DEFINE_multi_enum_class."""
 
-  def __init__(self, default, enum_class, help_string):
+  def __init__(self, default, enum_class, help_string=None):
     parser = flags.EnumClassParser(enum_class)
     serializer = flags.EnumClassListSerializer(",", lowercase=False)
     super().__init__(default, help_string, parser, serializer)
@@ -397,7 +406,7 @@ class MultiEnumClass(MultiItem):
 class MultiString(MultiItem):
   """Matches behaviour of flags.DEFINE_multi_string."""
 
-  def __init__(self, default, help_string):
+  def __init__(self, default, help_string=None):
     parser = flags.ArgumentParser()
     serializer = flags.ArgumentSerializer()
     super().__init__(default, help_string, parser, serializer)

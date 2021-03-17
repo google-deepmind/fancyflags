@@ -4,6 +4,7 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+* Made help strings optional for all `Item`s and `MultiItem`s.
 * Added `ff.DEFINE_auto`.
 
 ## [1.0]

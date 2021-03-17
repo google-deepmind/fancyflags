@@ -46,11 +46,10 @@ import fancyflags as ff
 
 _REPLAY_FLAG = ff.DEFINE_dict(
     "replay",
-    capacity=ff.Integer(int(1e6), "Maximum replay capacity."),
-    priority_exponent=ff.Float(0.6, "Priority exponent."),
-    importance_sampling_exponent=ff.Float(0.4, "Importance sampling exponent."),
-    removal_strategy=ff.Enum("fifo", ["rand", "fifo", "max_value"],
-                             "The prioritization method for replay removal.")
+    capacity=ff.Integer(int(1e6)),
+    priority_exponent=ff.Float(0.6),
+    importance_sampling_exponent=ff.Float(0.4),
+    removal_strategy=ff.Enum("fifo", ["rand", "fifo", "max_value"])
 )
 ```
 
@@ -71,9 +70,9 @@ replay_lib.Replay(**REPLAY_FLAG.value)
 }
 ```
 
-For each item in the dict, `ff.DEFINE_dict` also generates a dot-delimited flag
-that can be overridden from the command line. In this example the generated
-flags would be
+For each item in the dict, `ff.DEFINE_dict` also generates a dot-delimited
+"item" flag that can be overridden from the command line. In this example the
+item flags would be
 
 ```
 replay.capacity
@@ -82,9 +81,9 @@ replay.importance_sampling_exponent
 replay.removal_strategy
 ```
 
-Overriding one of these flags from the command line updates the corresponding
-entry in the dict flag. The value of the dict flag can be accessed by the return
-value of `ff.DEFINE_dict` (`_REPLAY_FLAG.value` in the example above), or via the
+Overriding an item flag from the command line updates the corresponding entry in
+the dict flag. The value of the dict flag can be accessed by the return value
+of `ff.DEFINE_dict` (`_REPLAY_FLAG.value` in the example above), or via the
 `FLAGS.replay` attribute of the `absl.flags` module. For example, the override
 
 ```shell
@@ -109,10 +108,10 @@ fancyflags also supports nested dictionaries:
 ```python
 _NESTED_REPLAY_FLAG = ff.DEFINE_dict(
     "replay",
-    capacity=ff.Integer(int(1e6), "Maximum replay capacity."),
+    capacity=ff.Integer(int(1e6)),
     exponents=dict(
-        priority=ff.Float(0.6, "Priority exponent."),
-        importance_sampling=ff.Float(0.4, "Importance sampling exponent."),
+        priority=ff.Float(0.6),
+        importance_sampling=ff.Float(0.4),
     )
 )
 ```
@@ -137,6 +136,21 @@ replay.exponents.priority
 replay.exponents.importance_sampling
 ```
 
+### Help strings
+
+fancyflags uses the item flag's name as the default help string, however this
+can also be set manually:
+
+```python
+_NESTED_REPLAY_FLAG = ff.DEFINE_dict(
+    "replay",
+    capacity=ff.Integer(int(1e6), "Maximum size of replay buffer."),
+    exponents=dict(
+        priority=ff.Float(0.6),  # Help string: "replay.exponents.priority"
+        importance_sampling=ff.Float(0.4, "Importance sampling coefficient."),
+    )
+)
+```
 
 ## "Auto" flags for functions and other structures.
 
