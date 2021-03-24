@@ -41,7 +41,7 @@ class DefineAutoTest(absltest.TestCase):
   def test_dataclass(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'point', Point, 'help string', flag_values=flag_values)
+        'point', Point, flag_values=flag_values)
     flag_values(('./program',
                  '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
     expected = Point(2.0, -1.5, 'p')
@@ -50,7 +50,7 @@ class DefineAutoTest(absltest.TestCase):
   def test_function(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'greet', greet, 'help string', flag_values=flag_values)
+        'greet', greet, flag_values=flag_values)
     flag_values(('./program',
                  '--greet.greeting=Hi there',
                  '--greet.targets=(\'Alice\', \'Bob\')'))
@@ -60,7 +60,7 @@ class DefineAutoTest(absltest.TestCase):
   def test_override_kwargs(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'point', Point, 'help string', flag_values=flag_values)
+        'point', Point, flag_values=flag_values)
     flag_values(('./program',
                  '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
     expected = Point(3.0, -1.5, 'p')
@@ -69,16 +69,14 @@ class DefineAutoTest(absltest.TestCase):
 
   def test_overriding_top_level_auto_flag_fails(self):
     flag_values = flags.FlagValues()
-    _define_auto.DEFINE_auto(
-        'point', Point, 'help string', flag_values=flag_values)
+    _define_auto.DEFINE_auto('point', Point, flag_values=flag_values)
     with self.assertRaisesRegex(flags.IllegalFlagValueError,
                                 'Can\'t override an auto flag directly'):
       flag_values(('./program', '--point=2.0'))
 
   def test_basic_serialization(self):
     flag_values = flags.FlagValues()
-    _define_auto.DEFINE_auto(
-        'point', Point, 'help string', flag_values=flag_values)
+    _define_auto.DEFINE_auto('point', Point, flag_values=flag_values)
 
     # Accessing flag_holder.value would raise an error here, since flags haven't
     # been parsed yet. For consistency we access the value via flag_values
@@ -107,6 +105,19 @@ class DefineAutoTest(absltest.TestCase):
 
     flag_values(['./program'] + serialized_args)
     self.assertEqual(flag_values['point'].value(), parsed_point_value)
+
+  def test_help_strings(self):
+    flag_values = flags.FlagValues()
+
+    # Should default to module.name, since the `greet` docstring is empty.
+    _define_auto.DEFINE_auto('greet', greet, flag_values=flag_values)
+    # Should use the custom help string.
+    _define_auto.DEFINE_auto(
+        'point', Point, help_string='custom', flag_values=flag_values)
+
+    self.assertEqual(flag_values['greet'].help, '__main__.greet')
+    self.assertEqual(flag_values['point'].help, 'custom')
+
 
 if __name__ == '__main__':
   absltest.main()

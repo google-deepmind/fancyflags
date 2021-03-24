@@ -160,7 +160,7 @@ to a callable. The return value will also carry the correct type information.
 This callable could be a constructor
 
 ```python
-_REPLAY = ff.DEFINE_auto('replay', replay_lib.Replay, "replay flag")
+_REPLAY = ff.DEFINE_auto('replay', replay_lib.Replay)
 ```
 
 or it could be a dataclass
@@ -174,7 +174,7 @@ class DataSettings:
 
 # In main script.
 # Exposes flags: --data.dataset_name --data.split and --data.batch_size.
-_DATA_SETTINGS = ff.DEFINE_auto('data', datasets.DataSettings, 'Data config')
+_DATA_SETTINGS = ff.DEFINE_auto('data', datasets.DataSettings)
 
 def main(argv):
   # del argv  # Unused.
