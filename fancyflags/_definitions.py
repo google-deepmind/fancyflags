@@ -42,11 +42,11 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
 
   ff.DEFINE_dict(
       "image_settings",
-      mode=ff.String("pad", "Mode string field."),
+      mode=ff.String("pad"),
       sizes=dict(
-          width=ff.Integer(5, "Width."),
-          height=ff.Integer(7, "Height."),
-          scale=ff.Float(0.5, "Scale.")
+          width=ff.Integer(5),
+          height=ff.Integer(7),
+          scale=ff.Float(0.5),
       )
   )
 
