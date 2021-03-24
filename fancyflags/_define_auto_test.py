@@ -115,7 +115,7 @@ class DefineAutoTest(absltest.TestCase):
     _define_auto.DEFINE_auto(
         'point', Point, help_string='custom', flag_values=flag_values)
 
-    self.assertEqual(flag_values['greet'].help, '__main__.greet')
+    self.assertEqual(flag_values['greet'].help, f'{greet.__module__}.greet')
     self.assertEqual(flag_values['point'].help, 'custom')
 
 
