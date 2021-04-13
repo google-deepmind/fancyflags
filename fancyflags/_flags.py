@@ -58,8 +58,8 @@ class DictFlag(flags.Flag):
 
 # TODO(b/170423907): Pytype doesn't correctly infer that these have type
 #                    `property`.
-_flag_value_property = flags.Flag.value  # type: property
-_multi_flag_value_property = flags.MultiFlag.value  # type: property
+_flag_value_property = flags.Flag.value  # type: property  # pytype: disable=annotation-type-mismatch
+_multi_flag_value_property = flags.MultiFlag.value  # type: property  # pytype: disable=annotation-type-mismatch
 
 
 class ItemFlag(flags.Flag):
