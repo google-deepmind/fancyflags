@@ -94,6 +94,11 @@ class SequenceParserTest(parameterized.TestCase):
     with self.assertRaisesRegex(TypeError, "contains unsupported"):
       self.parser.parse(input_item)
 
+  def test_empty_string(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, _argument_parsers._EMPTY_STRING_ERROR_MESSAGE):
+      self.parser.parse("")
+
 
 class MultiEnumParserTest(parameterized.TestCase):
 

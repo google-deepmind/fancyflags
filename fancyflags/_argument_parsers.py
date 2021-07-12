@@ -30,6 +30,10 @@ must be a {} or {}.
 """.format(", ".join(type_.__name__ for type_ in SIMPLE_TYPES[:-1]),
            SIMPLE_TYPES[-1].__name__)
 
+_EMPTY_STRING_ERROR_MESSAGE = """
+Empty sequences should be given explicitly as [] or () and not as an empty
+string"""
+
 
 class SequenceParser(flags.ArgumentParser):
   """Parser of simple sequences containing simple Python values."""
@@ -49,12 +53,15 @@ class SequenceParser(flags.ArgumentParser):
     Raises:
       TypeError: If the input type is not supported, or if the input is not a
         flat sequence that only contains simple Python values.
+      ValueError: If the input is an empty string.
     """
     if argument is None:
       return []
     elif isinstance(argument, BASIC_SEQUENCE_TYPES):
       result = argument[:]
     elif isinstance(argument, str):
+      if not argument:
+        raise ValueError(_EMPTY_STRING_ERROR_MESSAGE)
       result = ast.literal_eval(argument)
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
         raise TypeError(
