@@ -2,6 +2,9 @@
 
 <!--* freshness: { owner: 'ydoron' reviewed: '2021-01-22' } *-->
 
+![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
+![PyPI version](https://badge.fury.io/py/fancyflags.svg)
+
 TIP: Already a fancyflags user? Check out our [usage tips](#tips)!
 
 The main feature of `fancyflags` is a nested dict flag, with familiar "dot"
