@@ -151,8 +151,8 @@ class FancyflagsTest(absltest.TestCase):
     self.assertEqual(FLAGS.valid_enum_class, {"my_enum": MyEnum.A})
 
   def test_define_invalid_enum_class(self):
-    with self.assertRaises(TypeError):
-      ff.EnumClass("invalid_enum_class", DifferentEnum.C, MyEnum)
+    with self.assertRaises(ValueError):
+      ff.EnumClass(DifferentEnum.C, MyEnum)
 
 
 class ExtractDefaultsTest(absltest.TestCase):

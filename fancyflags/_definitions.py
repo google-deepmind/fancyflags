@@ -15,11 +15,18 @@
 """Functionality for defining `Item`s and dict flags."""
 
 import collections
+import enum
+from typing import Any, Generic, Iterable, Mapping, Optional, Type, TypeVar, Union
+
 from absl import flags
 
 from fancyflags import _argument_parsers
 from fancyflags import _flags
 # internal imports: usage_logging
+
+_T = TypeVar("_T")
+_EnumType = TypeVar("_EnumType", bound=enum.Enum)
+_MappingType = TypeVar("_MappingType", bound=Mapping[str, Any])
 
 SEPARATOR = "."
 
@@ -133,7 +140,11 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
       flag_values=flag_values)
 
 
-def define_flags(name, name_to_item, flag_values=flags.FLAGS):
+def define_flags(
+    name: str,
+    name_to_item: _MappingType,
+    flag_values: flags.FlagValues = flags.FLAGS,
+) -> _MappingType:
   """Defines dot-delimited flags from a flat or nested dict of `ff.Item`s.
 
   Args:
@@ -188,10 +199,16 @@ def _extract_defaults(name_to_item):
   return result
 
 
-class Item:
+class Item(Generic[_T]):
   """Defines a flag for leaf items in the dictionary."""
 
-  def __init__(self, default, help_string, parser, serializer=None):
+  def __init__(
+      self,
+      default: Optional[_T],
+      help_string: str,
+      parser: flags.ArgumentParser,
+      serializer: Optional[flags.ArgumentSerializer] = None,
+  ):
     """Initializes a new `Item`.
 
     Args:
@@ -214,7 +231,7 @@ class Item:
     if default is None:
       self.default = default
     else:
-      self.default = parser.parse(default)
+      self.default = parser.parse(default)  # pytype: disable=wrong-arg-types
 
     self._help_string = help_string
     self._parser = parser
@@ -224,7 +241,12 @@ class Item:
     else:
       self._serializer = serializer
 
-  def define(self, namespace, shared_dict, flag_values):
+  def define(
+      self,
+      namespace: str,
+      shared_dict,
+      flag_values: flags.FlagValues,
+  ) -> flags.FlagHolder[_T]:
     """Defines a flag that when parsed will update a shared dictionary.
 
     Args:
@@ -235,10 +257,13 @@ class Item:
         write the parsed value into `shared_dict`. The `namespace` determines
         the flat or nested key when storing the parsed value.
       flag_values: The `flags.FlagValues` instance to use.
+
+    Returns:
+      A new flags.FlagHolder instance.
     """
     name = SEPARATOR.join(namespace)
     help_string = name if self._help_string is None else self._help_string
-    flags.DEFINE_flag(
+    return flags.DEFINE_flag(
         _flags.ItemFlag(
             shared_dict,
             namespace,
@@ -250,9 +275,12 @@ class Item:
         flag_values=flag_values)
 
 
-class Boolean(Item):
+class Boolean(Item[bool]):
+  """Matches behaviour of flags.DEFINE_boolean."""
 
-  def __init__(self, default, help_string=None):
+  def __init__(self,
+               default: Optional[bool],
+               help_string: Optional[str] = None):
     super().__init__(default, help_string, flags.BooleanParser())
 
 
@@ -260,40 +288,58 @@ class Boolean(Item):
 #                   possibly recommend some over others.
 
 
-class Enum(Item):
+class Enum(Item[str]):
+  """Matches behaviour of flags.DEFINE_enum."""
 
-  def __init__(self,
-               default,
-               enum_values,
-               help_string=None,
-               case_sensitive=True):
-    parser = flags.EnumParser(enum_values, case_sensitive)
+  def __init__(
+      self,
+      default: Optional[str],
+      enum_values: Iterable[str],
+      help_string: Optional[str] = None,
+      case_sensitive: bool = True,
+  ):
+    parser = flags.EnumParser(tuple(enum_values), case_sensitive)
     super().__init__(default, help_string, parser)
 
 
-class EnumClass(Item):
+class EnumClass(Item[_EnumType]):
   """Matches behaviour of flags.DEFINE_enum_class."""
 
-  def __init__(self, default, enum_class, help_string=None):
+  def __init__(
+      self,
+      default: Optional[_EnumType],
+      enum_class: Type[_EnumType],
+      help_string: Optional[str] = None,
+  ):
     parser = flags.EnumClassParser(enum_class)
     super().__init__(
         default, help_string, parser,
         flags.EnumClassSerializer(lowercase=False))
 
 
-class Float(Item):
+class Float(Item[float]):
+  """Matches behaviour of flags.DEFINE_float."""
 
-  def __init__(self, default, help_string=None):
+  def __init__(
+      self,
+      default: Optional[float],
+      help_string: Optional[str] = None,
+  ):
     super().__init__(default, help_string, flags.FloatParser())
 
 
-class Integer(Item):
+class Integer(Item[int]):
+  """Matches behaviour of flags.DEFINE_integer."""
 
-  def __init__(self, default, help_string=None):
+  def __init__(
+      self,
+      default: Optional[int],
+      help_string: Optional[str] = None,
+  ):
     super().__init__(default, help_string, flags.IntegerParser())
 
 
-class Sequence(Item):
+class Sequence(Item, Generic[_T]):
   r"""Defines a flag for a list or tuple of simple numeric types or strings.
 
   Here is an example of overriding a Sequence flag within a dict-flag named
@@ -311,23 +357,32 @@ class Sequence(Item):
   ```
   """
 
-  def __init__(self, default, help_string=None):
+  def __init__(
+      self,
+      default: Optional[Iterable[_T]],
+      help_string: Optional[str] = None,
+  ):
     super().__init__(default, help_string, _argument_parsers.SequenceParser())
 
 
-class String(Item):
+class String(Item[str]):
+  """Matches behaviour of flags.DEFINE_string."""
 
-  def __init__(self, default, help_string=None):
+  def __init__(self, default: Optional[str], help_string: Optional[str] = None):
     super().__init__(default, help_string, flags.ArgumentParser())
 
 
-class StringList(Item):
+class StringList(Item[Iterable[str]]):
   """A flag that implements the same behavior as absl.flags.DEFINE_list.
 
   Can be overwritten as --my_flag="a,list,of,commaseparated,strings"
   """
 
-  def __init__(self, default, help_string=None):
+  def __init__(
+      self,
+      default: Optional[Iterable[str]],
+      help_string: Optional[str] = None,
+  ):
     serializer = flags.CsvListSerializer(",")
     super().__init__(default, help_string, flags.ListParser(), serializer)
 
@@ -335,17 +390,19 @@ class StringList(Item):
 # MultiFlag-related functionality.
 
 
-class MultiItem:
+class MultiItem(Generic[_T]):
   """Class for items that can appear multiple times on the command line.
 
   See Item class for more details on methods and usage.
   """
 
-  def __init__(self,
-               default,
-               help_string,
-               parser,
-               serializer=None):
+  def __init__(
+      self,
+      default: Union[None, _T, Iterable[_T]],
+      help_string: str,
+      parser: flags.ArgumentParser,
+      serializer: Optional[flags.ArgumentSerializer] = None,
+  ):
     if default is None:
       self.default = default
     else:
@@ -369,10 +426,15 @@ class MultiItem:
     else:
       self._serializer = serializer
 
-  def define(self, namespace, shared_dict, flag_values):
+  def define(
+      self,
+      namespace: str,
+      shared_dict,
+      flag_values,
+  ) -> flags.FlagHolder[Iterable[_T]]:
     name = SEPARATOR.join(namespace)
     help_string = name if self._help_string is None else self._help_string
-    flags.DEFINE_flag(
+    return flags.DEFINE_flag(
         _flags.MultiItemFlag(
             shared_dict,
             namespace,
@@ -384,10 +446,15 @@ class MultiItem:
         flag_values=flag_values)
 
 
-class MultiEnum(Item):
+class MultiEnum(Item[_T]):
   """Defines a flag for lists of values of any type, matched to enum_values."""
 
-  def __init__(self, default, enum_values, help_string=None):
+  def __init__(
+      self,
+      default: Union[None, _T, Iterable[_T]],
+      enum_values: Iterable[_T],
+      help_string: Optional[str] = None,
+  ):
     parser = _argument_parsers.MultiEnumParser(enum_values)
     serializer = flags.ArgumentSerializer()
     _ = parser.parse(enum_values)
@@ -397,7 +464,12 @@ class MultiEnum(Item):
 class MultiEnumClass(MultiItem):
   """Matches behaviour of flags.DEFINE_multi_enum_class."""
 
-  def __init__(self, default, enum_class, help_string=None):
+  def __init__(
+      self,
+      default: Union[None, _EnumType, Iterable[_EnumType]],
+      enum_class: Type[_EnumType],
+      help_string: Optional[str] = None,
+  ):
     parser = flags.EnumClassParser(enum_class)
     serializer = flags.EnumClassListSerializer(",", lowercase=False)
     super().__init__(default, help_string, parser, serializer)
@@ -416,18 +488,31 @@ class MultiString(MultiItem):
 
 
 def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
-    name, default, enum_values, help, flag_values=flags.FLAGS, **args):
+    name: str,
+    default: Optional[Iterable[_T]],
+    enum_values: Iterable[_T],
+    help: str,
+    flag_values=flags.FLAGS,
+    **args,
+) -> flags.FlagHolder[_T]:
   """Defines flag for MultiEnum."""
   parser = _argument_parsers.MultiEnumParser(enum_values)
   serializer = flags.ArgumentSerializer()
   # usage_logging: multi_enum
-  flags.DEFINE(parser, name, default, help, flag_values, serializer, **args)
+  return flags.DEFINE(parser, name, default, help, flag_values, serializer,
+                      **args,)
 
 
 def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
-    name, default, help, flag_values=flags.FLAGS, **args):
+    name: str,
+    default: Optional[Iterable[_T]],
+    help: str,
+    flag_values=flags.FLAGS,
+    **args,
+) -> flags.FlagHolder[Iterable[_T]]:
   """Defines a flag for a list or tuple of simple types. See `Sequence` docs."""
   parser = _argument_parsers.SequenceParser()
   serializer = flags.ArgumentSerializer()
   # usage_logging: sequence
-  flags.DEFINE(parser, name, default, help, flag_values, serializer, **args)
+  return flags.DEFINE(parser, name, default, help, flag_values, serializer,
+                      **args,)
