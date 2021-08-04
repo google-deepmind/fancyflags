@@ -14,22 +14,23 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables."""
 
-from typing import Callable, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from absl import flags
 from fancyflags import _auto
 from fancyflags import _definitions
 from fancyflags import _flags
 
+# TODO(jaslanides): Bound this by Callable once our LSP supports it.
 _T = TypeVar('_T')
 
 
 def DEFINE_auto(  # pylint: disable=invalid-name
     name: str,
-    fn: Callable[..., _T],
+    fn: _T,
     help_string: Optional[str] = None,
     flag_values: flags.FlagValues = flags.FLAGS,
-) -> flags.FlagHolder[Callable[..., _T]]:
+) -> _flags.TypedFlagHolder[_T]:
   """Defines a flag for an `ff.auto`-compatible constructor or callable.
 
   Automatically defines a set of dotted `ff.Item` flags corresponding to the
@@ -75,8 +76,8 @@ def DEFINE_auto(  # pylint: disable=invalid-name
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
   help_string = help_string or f'{fn.__module__}.{fn.__name__}'
   # Define a holder flag.
-  return flags.DEFINE_flag(
-      _flags.AutoFlag(
+  holder = flags.DEFINE_flag(
+      flag=_flags.AutoFlag(
           fn,
           defaults,
           name=name,
@@ -84,4 +85,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
           parser=flags.ArgumentParser(),
           serializer=None,
           help_string=help_string),
-      flag_values=flag_values)
+      flag_values=flag_values,
+  )
+
+  return _flags.TypedFlagHolder(holder)

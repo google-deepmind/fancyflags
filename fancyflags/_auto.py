@@ -80,8 +80,12 @@ def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
     ValueError: If any of the arguments to `callable_fn` lacks a default value.
     TypeError: If any of the arguments to `callable_fn` lacks a type annotation.
     TypeError: If any of the arguments to `callable_fn` has an unsupported type.
+    TypeError: If `callable_fn` is not callable.
   """
   # usage_logging: auto
+
+  if not callable(callable_fn):
+    raise TypeError(f"Not a callable: {callable_fn}.")
 
   ff_dict = {}
 
