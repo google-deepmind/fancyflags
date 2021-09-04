@@ -23,6 +23,8 @@ from fancyflags import _flags
 
 _T = TypeVar('_T')
 
+# Add current module to disclaimed module ids.
+flags.disclaim_key_flags()
 
 def DEFINE_auto(  # pylint: disable=invalid-name
     name: str,

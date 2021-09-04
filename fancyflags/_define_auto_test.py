@@ -108,5 +108,16 @@ class DefineAutoTest(absltest.TestCase):
     flag_values(['./program'] + serialized_args)
     self.assertEqual(flag_values['point'].value(), parsed_point_value)
 
+  def test_disclaimed_module(self):
+    flag_values = flags.FlagValues()
+    _ = _define_auto.DEFINE_auto(
+      'greet', greet, 'help string', flag_values=flag_values)
+    defining_module = flag_values.find_module_defining_flag('greet')
+
+    # the defining module should be the calling module, not the module where
+    # the flag is defined. otherwise the help for a module's flags will not be
+    # printed unless the user uses --helpfull.
+    self.assertEqual(defining_module, 'fancyflags._define_auto_test')
+
 if __name__ == '__main__':
   absltest.main()

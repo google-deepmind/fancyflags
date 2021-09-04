@@ -14,6 +14,7 @@
 # ============================================================================
 """An extended flags library. The main component is a nested dict flag."""
 
+from absl import flags
 from fancyflags import _auto
 from fancyflags import _define_auto
 from fancyflags import _definitions
@@ -21,6 +22,9 @@ from fancyflags import _metadata
 # internal imports: usage_logging
 
 __version__ = _metadata.__version__
+
+# Add current module to disclaimed module ids.
+flags.disclaim_key_flags()
 
 # pylint: disable=invalid-name
 
