@@ -114,8 +114,8 @@ class DefineAutoTest(absltest.TestCase):
       'greet', greet, 'help string', flag_values=flag_values)
     defining_module = flag_values.find_module_defining_flag('greet')
 
-    # the defining module should be the calling module, not the module where
-    # the flag is defined. otherwise the help for a module's flags will not be
+    # The defining module should be the calling module, not the module where
+    # the flag is defined. Otherwise the help for a module's flags will not be
     # printed unless the user uses --helpfull.
     self.assertEqual(defining_module, 'fancyflags._define_auto_test')
 
