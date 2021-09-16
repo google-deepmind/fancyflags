@@ -24,6 +24,9 @@ from fancyflags import _flags
 # TODO(jaslanides): Bound this by Callable once our LSP supports it.
 _T = TypeVar('_T')
 
+# Add current module to disclaimed module ids.
+flags.disclaim_key_flags()
+
 
 def DEFINE_auto(  # pylint: disable=invalid-name
     name: str,

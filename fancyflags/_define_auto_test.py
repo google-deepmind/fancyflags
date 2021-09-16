@@ -45,8 +45,8 @@ class DefineAutoTest(absltest.TestCase):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
         'point', Point, flag_values=flag_values)
-    flag_values(('./program',
-                 '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
+    flag_values(
+        ('./program', '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
     expected = Point(2.0, -1.5, 'p')
     self.assertEqual(expected, flag_holder.value())
 
@@ -54,9 +54,11 @@ class DefineAutoTest(absltest.TestCase):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
         'greet', greet, flag_values=flag_values)
-    flag_values(('./program',
-                 '--greet.greeting=Hi there',
-                 '--greet.targets=(\'Alice\', \'Bob\')'))
+    flag_values((
+        './program',
+        '--greet.greeting=Hi there',
+        '--greet.targets=(\'Alice\', \'Bob\')',
+    ))
     expected = 'Hi there Alice, Bob'
     self.assertEqual(expected, flag_holder.value())
 
@@ -64,8 +66,8 @@ class DefineAutoTest(absltest.TestCase):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
         'point', Point, flag_values=flag_values)
-    flag_values(('./program',
-                 '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
+    flag_values(
+        ('./program', '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
     expected = Point(3.0, -1.5, 'p')
     # Here we override one of the arguments.
     self.assertEqual(expected, flag_holder.value(x=3.0))
@@ -87,8 +89,8 @@ class DefineAutoTest(absltest.TestCase):
     initial_point_value = copy.deepcopy(flag_values['point'].value())
 
     # Parse flags, then serialize.
-    flag_values(('./program',
-                 '--point.x=1.2', '--point.y=3.5', '--point.label=p'))
+    flag_values(
+        ('./program', '--point.x=1.2', '--point.y=3.5', '--point.label=p'))
 
     self.assertEqual(flag_values['point'].serialize(), _flags._EMPTY)
     self.assertEqual(flag_values['point.x'].serialize(), '--point.x=1.2')
@@ -100,14 +102,28 @@ class DefineAutoTest(absltest.TestCase):
     self.assertNotEqual(parsed_point_value, initial_point_value)
 
     # Test a round trip.
-    serialized_args = [flag_values[name].serialize()
-                       for name in flag_values if name.startswith('point.')]
+    serialized_args = [
+        flag_values[name].serialize()
+        for name in flag_values
+        if name.startswith('point.')
+    ]
 
     flag_values.unparse_flags()  # Reset to defaults
     self.assertEqual(flag_values['point'].value(), initial_point_value)
 
     flag_values(['./program'] + serialized_args)
     self.assertEqual(flag_values['point'].value(), parsed_point_value)
+
+  def test_disclaimed_module(self):
+    flag_values = flags.FlagValues()
+    _ = _define_auto.DEFINE_auto(
+        'greet', greet, 'help string', flag_values=flag_values)
+    defining_module = flag_values.find_module_defining_flag('greet')
+
+    # The defining module should be the calling module, not the module where
+    # the flag is defined. Otherwise the help for a module's flags will not be
+    # printed unless the user uses --helpfull.
+    self.assertIn('_define_auto_test', defining_module)
 
   def test_help_strings(self):
     flag_values = flags.FlagValues()
