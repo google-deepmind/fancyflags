@@ -14,6 +14,10 @@
 # ============================================================================
 """Tests for fancyflags.auto."""
 
+# Test that `auto` can still correctly infer parameter types when postponed
+# evaluation of type annotations (PEP 563) is enabled.
+from __future__ import annotations
+
 import abc
 from typing import List, Optional, Sequence, Tuple
 

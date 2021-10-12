@@ -15,6 +15,7 @@
 """Automatically builds flags from a callable signature."""
 
 import inspect
+import typing
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
 
 from fancyflags import _definitions
@@ -49,6 +50,35 @@ _UNSUPPORTED_ARGUMENT_TYPE = (
     "{{annotation}}\n"
     "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP)))
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
+
+
+def _get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
+  """Returns the signature of a callable with type annotations resolved.
+
+  If postponed evaluation of type annotations (PEP 563) is enabled (e.g. via
+  `from __future__ import annotations` in Python >= 3.7) then we will need to
+  resolve the annotations from their string forms in order to access the real
+  types within the signature.
+  https://www.python.org/dev/peps/pep-0563/#resolving-type-hints-at-runtime
+
+  Args:
+    fn: A callable to get the signature of.
+
+  Returns:
+    An instance of `inspect.Signature`.
+  """
+  type_hints = typing.get_type_hints(fn) or {}
+  orig_signature = inspect.signature(fn)
+  new_params = []
+  for key, orig_param in orig_signature.parameters.items():
+    new_params.append(
+        inspect.Parameter(
+            name=key,
+            default=orig_param.default,
+            annotation=type_hints.get(key, orig_param.annotation),
+            kind=orig_param.kind,
+        ))
+  return orig_signature.replace(parameters=new_params)
 
 
 def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
@@ -91,11 +121,11 @@ def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
 
   # Work around issue with metaclass-wrapped classes, such as Sonnet v2 modules.
   if isinstance(callable_fn, type):
-    signature = inspect.signature(callable_fn.__init__)
+    signature = _get_typed_signature(callable_fn.__init__)
     # Remove `self` from start of __init__ signature.
-    parameters = list(signature.parameters.values())[1:]
+    unused_self, *parameters = signature.parameters.values()
   else:
-    signature = inspect.signature(callable_fn)
+    signature = _get_typed_signature(callable_fn)
     parameters = signature.parameters.values()
 
   for param in parameters:
