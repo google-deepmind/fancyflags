@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2021-01-22' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2021-10-12' } *-->
 
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
 ![PyPI version](https://badge.fury.io/py/fancyflags.svg)
@@ -157,16 +157,17 @@ _NESTED_REPLAY_FLAG = ff.DEFINE_dict(
 
 ## "Auto" flags for functions and other structures.
 
-`fancyflags` also provides an `ff.DEFINE_auto` flag generate flags corresponding
-to a callable. The return value will also carry the correct type information.
+`fancyflags` also provides `ff.DEFINE_auto` which automatically generates a dict
+flag declaration corresponding to the signature of a given callable. The return
+value will also carry the correct type information.
 
-This callable could be a constructor
+For example the callable could be a constructor
 
 ```python
 _REPLAY = ff.DEFINE_auto('replay', replay_lib.Replay)
 ```
 
-or it could be a dataclass
+or it could be a container type, such as a `dataclass`
 
 ```python
 @dataclasses.dataclass
