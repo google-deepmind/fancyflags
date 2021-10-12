@@ -14,42 +14,37 @@
 # ============================================================================
 """An extended flags library. The main component is a nested dict flag."""
 
-from absl import flags
-from fancyflags import _auto
-from fancyflags import _define_auto
-from fancyflags import _definitions
-from fancyflags import _metadata
-# internal imports: usage_logging
-
-__version__ = _metadata.__version__
+# pylint: disable=g-bad-import-order,g-import-not-at-top
 
 # Add current module to disclaimed module ids.
+from absl import flags
 flags.disclaim_key_flags()
 
-# pylint: disable=invalid-name
+from fancyflags._metadata import __version__
 
-# Function for automatically building fancyflags defs from a callable signature.
-auto = _auto.auto
+# Define flags based on a dictionary or sequence.
+from fancyflags._definitions import DEFINE_dict
+from fancyflags._definitions import DEFINE_sequence
+from fancyflags._definitions import define_flags
 
-DEFINE_dict = _definitions.DEFINE_dict
-define_flags = _definitions.define_flags
-DEFINE_sequence = _definitions.DEFINE_sequence
-DEFINE_auto = _define_auto.DEFINE_auto
+# Automatically build fancyflags defs from a callable signature.
+from fancyflags._auto import auto
+from fancyflags._define_auto import DEFINE_auto
 
 # Currently supported types inside the dict.
-Boolean = _definitions.Boolean
-Enum = _definitions.Enum
-EnumClass = _definitions.EnumClass
-Float = _definitions.Float
-Integer = _definitions.Integer
-MultiEnum = _definitions.MultiEnum
-MultiEnumClass = _definitions.MultiEnumClass
-MultiString = _definitions.MultiString
-Sequence = _definitions.Sequence
-String = _definitions.String
-StringList = _definitions.StringList
+from fancyflags._definitions import Boolean
+from fancyflags._definitions import Enum
+from fancyflags._definitions import EnumClass
+from fancyflags._definitions import Float
+from fancyflags._definitions import Integer
+from fancyflags._definitions import MultiEnum
+from fancyflags._definitions import MultiEnumClass
+from fancyflags._definitions import MultiString
+from fancyflags._definitions import Sequence
+from fancyflags._definitions import String
+from fancyflags._definitions import StringList
 
 # Class for adding new flag types.
-Item = _definitions.Item
+from fancyflags._definitions import Item
 
 # usage_logging: import
