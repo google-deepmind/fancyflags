@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import abc
+import enum
 from typing import List, Optional, Sequence, Tuple
 
 from absl import flags
@@ -27,6 +28,11 @@ import fancyflags as ff
 from fancyflags import _auto
 
 FLAGS = flags.FLAGS
+
+
+class MyEnum(enum.Enum):
+  ZERO = 0
+  ONE = 1
 
 
 class AutoTest(absltest.TestCase):
@@ -64,6 +70,24 @@ class AutoTest(absltest.TestCase):
     self.assertCountEqual(expected_settings, ff_dict)
     ff.DEFINE_dict('my_function_settings', **ff_dict)
     self.assertEqual(FLAGS.my_function_settings, expected_settings)
+
+  def test_works_enum_fn(self):
+
+    # pylint: disable=unused-argument
+    def my_function(
+        str_: str = 'foo',
+        int_: int = 10,
+        enum_: MyEnum = MyEnum.ZERO
+    ):
+      pass
+    # pylint: enable=unused-argument
+    expected_settings = {
+        'str_': 'foo',
+        'int_': 10,
+        'enum_': MyEnum.ZERO,
+    }
+    ff_dict = ff.auto(my_function)
+    self.assertCountEqual(expected_settings, ff_dict)
 
   def test_works_class(self):
 

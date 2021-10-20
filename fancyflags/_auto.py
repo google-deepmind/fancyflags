@@ -14,6 +14,8 @@
 # ============================================================================
 """Automatically builds flags from a callable signature."""
 
+import enum
+import functools
 import inspect
 import typing
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
@@ -132,14 +134,18 @@ def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
     if param.annotation is inspect.Signature.empty:
       raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
     try:
-      ff_type = _TYPE_MAP[param.annotation]
+      if (inspect.isclass(param.annotation) and
+          issubclass(param.annotation, enum.Enum)):
+        ff_type = functools.partial(
+            _definitions.EnumClass, enum_class=param.annotation)
+      else:
+        ff_type = _TYPE_MAP[param.annotation]
     except KeyError:
       raise TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
           name=param.name, annotation=param.annotation))
     if param.default is inspect.Signature.empty:
       raise ValueError(_MISSING_DEFAULT_VALUE.format(name=param.name))
-
-    help_string = param.name  # TODO(b/177673667): Parse this from docstring.
-    ff_dict[param.name] = ff_type(param.default, help_string)
+    # TODO(b/177673667): Parse the help string from docstring.
+    ff_dict[param.name] = ff_type(param.default, help_string=param.name)
 
   return ff_dict
