@@ -180,6 +180,16 @@ class AutoTest(absltest.TestCase):
             name='c', annotation=Sequence[object])):
       ff.auto(my_function)
 
+  def test_no_error_if_nonstrict_unsupported_type(self):
+
+    def my_function(a: int = 10,
+                    b: float = 1.0,
+                    c: Sequence[object] = (1, 2, 3)):
+      del a, b, c
+
+    return_dict = ff.auto(my_function, strict=False)
+    self.assertSetEqual(set(return_dict.keys()), {'a', 'b'})
+
   def test_error_if_not_callable(self):
     with self.assertRaises(TypeError):
       ff.auto(3)  # pytype: disable=wrong-arg-types

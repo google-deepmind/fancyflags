@@ -52,6 +52,8 @@ _UNSUPPORTED_ARGUMENT_TYPE = (
     "{{annotation}}\n"
     "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP)))
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
+_is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
+_is_unsupported_type = lambda type_: not (type_ in _TYPE_MAP or _is_enum(type_))
 
 
 def _get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
@@ -83,7 +85,8 @@ def _get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
   return orig_signature.replace(parameters=new_params)
 
 
-def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
+def auto(callable_fn: Callable[..., Any],
+         strict: bool = True) -> Mapping[str, _definitions.Item]:
   """Automatically builds fancyflag definitions from a callable's signature.
 
   Example usage:
@@ -103,6 +106,11 @@ def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
         * `bool`, `float`, `int`, or `str` scalars
         * Homogeneous sequences of these types
         * Optional scalars or sequences of these types
+    strict: A bool, whether invalid input types and defaults should trigger an
+      error (the default) or be silently ignored. Setting strict=False might
+      silence real errors, but will allow decorated functions to contain
+      non-default values, or values with defaults that can not be easily turned
+      into a flag or overriden on the CLI.
 
   Returns:
     Mapping from parameter names to fancyflags `Item`s, to be splatted into
@@ -131,21 +139,30 @@ def auto(callable_fn: Callable[..., Any]) -> Mapping[str, _definitions.Item]:
     parameters = signature.parameters.values()
 
   for param in parameters:
+    ff_exception = None
+
+    # Check for potential errors.
     if param.annotation is inspect.Signature.empty:
-      raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
-    try:
-      if (inspect.isclass(param.annotation) and
-          issubclass(param.annotation, enum.Enum)):
+      ff_exception = TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
+    elif param.default is inspect.Signature.empty:
+      ff_exception = ValueError(_MISSING_DEFAULT_VALUE.format(name=param.name))
+    elif _is_unsupported_type(param.annotation):
+      ff_exception = TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
+          name=param.name, annotation=param.annotation))
+
+    # If we saw an error, decide whether to error or skip based on strictness.
+    if ff_exception and strict:
+      raise ff_exception
+    elif ff_exception:
+      continue
+    else:
+      if _is_enum(param.annotation):
         ff_type = functools.partial(
             _definitions.EnumClass, enum_class=param.annotation)
       else:
         ff_type = _TYPE_MAP[param.annotation]
-    except KeyError:
-      raise TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
-          name=param.name, annotation=param.annotation))
-    if param.default is inspect.Signature.empty:
-      raise ValueError(_MISSING_DEFAULT_VALUE.format(name=param.name))
-    # TODO(b/177673667): Parse the help string from docstring.
-    ff_dict[param.name] = ff_type(param.default, help_string=param.name)
+
+      # TODO(b/177673667): Parse the help string from docstring.
+      ff_dict[param.name] = ff_type(param.default, help_string=param.name)
 
   return ff_dict
