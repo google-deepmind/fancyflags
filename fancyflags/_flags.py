@@ -193,3 +193,7 @@ class TypedFlagHolder(flags.FlagHolder, Generic[_T]):
   @property
   def name(self) -> str:
     return self._flag_holder.name
+
+  @property
+  def present(self) -> bool:
+    return self._flag_holder.present
