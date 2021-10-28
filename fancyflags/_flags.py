@@ -175,7 +175,7 @@ class TypedFlagHolder(flags.FlagHolder, Generic[_T]):
   """A typed wrapper for a FlagHolder.
 
   This is necessary until either Pytype supports PEP-562 (b/170419518), or
-  abseill-py drops Python 2 support (b/182444583) and moves their type hints
+  abseil-py drops Python 2 support (b/182444583) and moves their type hints
   into the source.
   """
 
