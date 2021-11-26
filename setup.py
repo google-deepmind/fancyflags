@@ -28,7 +28,6 @@ setup(
     install_requires=['absl-py'],
     tests_require=[
         'pytest',
-        'pytype',
     ],
     classifiers=[
         'Programming Language :: Python',

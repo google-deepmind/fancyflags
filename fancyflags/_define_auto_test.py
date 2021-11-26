@@ -23,9 +23,6 @@ from absl.testing import absltest
 
 from fancyflags import _define_auto
 from fancyflags import _flags
-import pytype_extensions
-
-assert_type = pytype_extensions.assert_type
 
 
 @dataclasses.dataclass
@@ -136,12 +133,6 @@ class DefineAutoTest(absltest.TestCase):
 
     self.assertEqual(flag_values['greet'].help, f'{greet.__module__}.greet')
     self.assertEqual(flag_values['point'].help, 'custom')
-
-  # TODO(b/149413467): Re-enable when Pytype supports generic + @property.
-  # def test_pytype(self):
-  #   holder = _define_auto.DEFINE_auto('point', Point)
-  #   assert_type(holder.value(), Point)
-  #   assert_type(holder.value(x=3.0), Point)
 
 
 if __name__ == '__main__':
