@@ -1,2 +1,2 @@
-absl-py==0.13.0
-pytest==6.2.1
+absl-py==1.0.0
+pytest==6.2.5
