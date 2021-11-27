@@ -26,15 +26,14 @@ setup(
     license='Apache License, Version 2.0',
     packages=find_packages(),
     install_requires=['absl-py'],
-    tests_require=[
-        'pytest',
-    ],
+    tests_require=['pytest'],
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: Apache Software License',
