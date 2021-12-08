@@ -59,7 +59,7 @@ _REPLAY_FLAG = ff.DEFINE_dict(
 and `**unpack` the values directly into the `Replay` constructor
 
 ```python
-replay_lib.Replay(**REPLAY_FLAG.value)
+replay_lib.Replay(**_REPLAY_FLAG.value)
 ```
 
 `ff.DEFINE_dict` creates a flag named `replay`, with a default value of
