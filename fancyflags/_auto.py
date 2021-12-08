@@ -56,7 +56,7 @@ _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
 _is_unsupported_type = lambda type_: not (type_ in _TYPE_MAP or _is_enum(type_))
 
 
-def _get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
+def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
   """Returns the signature of a callable with type annotations resolved.
 
   If postponed evaluation of type annotations (PEP 563) is enabled (e.g. via
@@ -131,11 +131,11 @@ def auto(callable_fn: Callable[..., Any],
 
   # Work around issue with metaclass-wrapped classes, such as Sonnet v2 modules.
   if isinstance(callable_fn, type):
-    signature = _get_typed_signature(callable_fn.__init__)
+    signature = get_typed_signature(callable_fn.__init__)
     # Remove `self` from start of __init__ signature.
     unused_self, *parameters = signature.parameters.values()
   else:
-    signature = _get_typed_signature(callable_fn)
+    signature = get_typed_signature(callable_fn)
     parameters = signature.parameters.values()
 
   for param in parameters:
