@@ -310,8 +310,9 @@ class EnumClass(Item[_EnumType]):
       default: Optional[_EnumType],
       enum_class: Type[_EnumType],
       help_string: Optional[str] = None,
+      case_sensitive: bool = False,
   ):
-    parser = flags.EnumClassParser(enum_class)
+    parser = flags.EnumClassParser(enum_class, case_sensitive=case_sensitive)
     super().__init__(
         default, help_string, parser,
         flags.EnumClassSerializer(lowercase=False))
