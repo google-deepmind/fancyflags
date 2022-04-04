@@ -8,6 +8,7 @@ All significant changes to this project will be documented here.
     default, to match the
     [corresponding change](https://github.com/abseil/abseil-py/commit/eb94d9587c6f2eade9617237fb6bba1364226a3b)
     in `DEFINE_enum_class`
+*   Added support for variadic tuples in `ff.DEFINE_auto`.
 
 ## [1.1]
 
