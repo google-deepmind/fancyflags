@@ -18,7 +18,8 @@ import enum
 import functools
 import inspect
 import typing
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+import warnings
 
 from fancyflags import _definitions
 # internal imports: usage_logging
@@ -89,8 +90,11 @@ def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
   return orig_signature.replace(parameters=new_params)
 
 
-def auto(callable_fn: Callable[..., Any],
-         strict: bool = True) -> Mapping[str, _definitions.Item]:
+def auto(
+    callable_fn: Callable[..., Any],
+    *,
+    strict: bool = True,
+) -> Mapping[str, _definitions.Item]:
   """Automatically builds fancyflag definitions from a callable's signature.
 
   Example usage:
@@ -131,8 +135,6 @@ def auto(callable_fn: Callable[..., Any],
   if not callable(callable_fn):
     raise TypeError(f"Not a callable: {callable_fn}.")
 
-  ff_dict = {}
-
   # Work around issue with metaclass-wrapped classes, such as Sonnet v2 modules.
   if isinstance(callable_fn, type):
     signature = get_typed_signature(callable_fn.__init__)
@@ -142,31 +144,51 @@ def auto(callable_fn: Callable[..., Any],
     signature = get_typed_signature(callable_fn)
     parameters = signature.parameters.values()
 
+  items: MutableMapping[str, _definitions.Item] = {}
+  parameters: Iterable[inspect.Parameter]
   for param in parameters:
-    ff_exception = None
 
     # Check for potential errors.
     if param.annotation is inspect.Signature.empty:
-      ff_exception = TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
-    elif param.default is inspect.Signature.empty:
-      ff_exception = ValueError(_MISSING_DEFAULT_VALUE.format(name=param.name))
+      exception = TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
     elif _is_unsupported_type(param.annotation):
-      ff_exception = TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
+      exception = TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
           name=param.name, annotation=param.annotation))
-
-    # If we saw an error, decide whether to error or skip based on strictness.
-    if ff_exception and strict:
-      raise ff_exception
-    elif ff_exception:
-      continue
     else:
-      if _is_enum(param.annotation):
-        ff_type = functools.partial(
-            _definitions.EnumClass, enum_class=param.annotation)
+      exception = None
+
+    # If we saw an error, decide whether to raise or skip based on strictness.
+    if exception:
+      if strict:
+        raise exception
       else:
-        ff_type = _TYPE_MAP[param.annotation]
+        warnings.warn(
+            f"Caught an exception ({exception}) when defining flags for "
+            f"parameter {param}; skipping because strict=False..."
+        )
+        continue
 
-      # TODO(b/177673667): Parse the help string from docstring.
-      ff_dict[param.name] = ff_type(param.default, help_string=param.name)
+    # Look up the corresponding Item to create.
+    if _is_enum(param.annotation):
+      item_constructor = functools.partial(
+          _definitions.EnumClass, enum_class=param.annotation)
+    else:
+      item_constructor = _TYPE_MAP[param.annotation]
 
-  return ff_dict
+    # If there is no default argument for this parameter, we set the
+    # corresponding `Flag` as `required`.
+    if param.default is inspect.Signature.empty:
+      default = None
+      required = True
+    else:
+      default = param.default
+      required = False
+
+    # TODO(b/177673667): Parse the help string from docstring.
+    items[param.name] = item_constructor(
+        default,
+        help_string=param.name,
+        required=required,
+    )
+
+  return items

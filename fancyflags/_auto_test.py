@@ -155,13 +155,14 @@ class AutoTest(absltest.TestCase):
     self.assertEqual(FLAGS.my_meta_class_settings['b'], 1.0)
     self.assertEqual(FLAGS.my_meta_class_settings['c'], (1, 2, 3))
 
-  def test_error_if_missing_default_value(self):
+  def test_required_item_with_no_default(self):
     def my_function(a: int, b: float = 1.0, c: Sequence[int] = (1, 2, 3)):
       del a, b, c
 
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, _auto._MISSING_DEFAULT_VALUE.format(name='a')):
-      ff.auto(my_function)
+    items = ff.auto(my_function)
+    self.assertTrue(items['a'].required)
+    self.assertFalse(items['b'].required)
+    self.assertFalse(items['c'].required)
 
   def test_error_if_missing_type_annotation(self):
     def my_function(a: int = 10, b=1.0, c: Sequence[int] = (1, 2, 3)):
@@ -191,8 +192,16 @@ class AutoTest(absltest.TestCase):
                     c: Sequence[object] = (1, 2, 3)):
       del a, b, c
 
-    return_dict = ff.auto(my_function, strict=False)
-    self.assertSetEqual(set(return_dict.keys()), {'a', 'b'})
+    items = ff.auto(my_function, strict=False)
+    self.assertSetEqual(set(items.keys()), {'a', 'b'})
+
+  def test_no_error_if_nonstrict_no_type_annotation(self):
+
+    def my_function(a, b: int = 3):
+      del a, b
+
+    items = ff.auto(my_function, strict=False)
+    self.assertSetEqual(set(items.keys()), {'b'})
 
   def test_error_if_not_callable(self):
     with self.assertRaises(TypeError):

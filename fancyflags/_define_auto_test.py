@@ -47,6 +47,29 @@ class DefineAutoTest(absltest.TestCase):
     expected = Point(2.0, -1.5, 'p')
     self.assertEqual(expected, flag_holder.value())
 
+  def test_dataclass_nodefaults(self):
+
+    # Given a class constructor with non-default (required) argument(s)...
+    @dataclasses.dataclass
+    class MySettings:
+      foo: str
+      bar: int = 3
+
+    # If we define auto flags for it...
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_auto(
+        'thing', MySettings, flag_values=flag_values)
+
+    # Then the corresponding flag is required: not passing it should error.
+    with self.assertRaisesRegex(
+        flags.IllegalFlagValueError, 'thing.foo'):
+      flag_values(('./program', ''))
+
+    # Passing the required flag should work as normal.
+    flag_values(('./program', '--thing.foo=hello'))
+    expected = MySettings('hello', 3)
+    self.assertEqual(expected, flag_holder.value())
+
   def test_function(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
@@ -133,6 +156,25 @@ class DefineAutoTest(absltest.TestCase):
 
     self.assertEqual(flag_values['greet'].help, f'{greet.__module__}.greet')
     self.assertEqual(flag_values['point'].help, 'custom')
+
+  def test_manual_nostrict_overrides_no_default(self):
+
+    # Given a function without type hints...
+    def my_function(a):
+      return a + 1
+
+    # If we define an auto flag using this function in non-strict mode...
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_auto(
+        'foo', my_function, flag_values=flag_values, strict=False)
+
+    # Calling the function without arguments should error.
+    flag_values(('./program', ''))
+    with self.assertRaises(TypeError):
+      flag_holder.value()
+
+    # Calling with arguments should work fine.
+    self.assertEqual(flag_holder.value(a=2), 3)
 
 
 if __name__ == '__main__':

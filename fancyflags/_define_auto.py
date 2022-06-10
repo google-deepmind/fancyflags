@@ -14,15 +14,14 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables."""
 
-from typing import Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
 from absl import flags
 from fancyflags import _auto
 from fancyflags import _definitions
 from fancyflags import _flags
 
-# TODO(jaslanides): Bound this by Callable once our LSP supports it.
-_T = TypeVar('_T')
+_F = TypeVar('_F', bound=Callable)
 
 # Add current module to disclaimed module ids.
 flags.disclaim_key_flags()
@@ -30,10 +29,12 @@ flags.disclaim_key_flags()
 
 def DEFINE_auto(  # pylint: disable=invalid-name
     name: str,
-    fn: _T,
+    fn: _F,
     help_string: Optional[str] = None,
     flag_values: flags.FlagValues = flags.FLAGS,
-) -> _flags.TypedFlagHolder[_T]:
+    *,
+    strict: bool = True,
+) -> _flags.TypedFlagHolder[_F]:
   """Defines a flag for an `ff.auto`-compatible constructor or callable.
 
   Automatically defines a set of dotted `ff.Item` flags corresponding to the
@@ -70,11 +71,13 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     help_string: Optional help string for this flag. If not provided, this will
       default to '{fn's module}.{fn's name}'.
     flag_values: An optional `flags.FlagValues` instance.
+    strict: Whether to skip flag definitions for arguments without type hints,
+      or for arguments with unknown types.
 
   Returns:
     A `flags.FlagHolder`.
   """
-  arguments = _auto.auto(fn)
+  arguments = _auto.auto(fn, strict=strict)
   # Define the individual flags.
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
   help_string = help_string or f'{fn.__module__}.{fn.__name__}'

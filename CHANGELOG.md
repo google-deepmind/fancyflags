@@ -4,6 +4,8 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Added support for functions or constructors without default arguments in
+    `ff.DEFINE_auto`.
 *   Added a `case_sensitive` argument to `ff.EnumClass` and set to `False` by
     default, to match the
     [corresponding change](https://github.com/abseil/abseil-py/commit/eb94d9587c6f2eade9617237fb6bba1364226a3b)
