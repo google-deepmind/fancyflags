@@ -17,6 +17,8 @@
 import copy
 import enum
 
+from typing import Any, Callable
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -400,6 +402,60 @@ class SerializationTest(absltest.TestCase):
 
     FLAGS(["./program"] + serialized_args)
     self.assertDictEqual(FLAGS["to_serialize"].value, parsed_dict_value)
+
+# Format:
+# test name, flag define function, item, default value, override value
+NAMES_ITEMS_AND_FLAGS = (
+    # Booleans fail because of legacy absl flags behaviour of
+    # --flagname and --noflagname
+    # which shows up in serialisation.
+    # ("boolean", flags.DEFINE_boolean, ff.Boolean, True, "false"),
+    ("integer", flags.DEFINE_integer, ff.Integer, 1, "2"),
+    ("float", flags.DEFINE_float, ff.Float, 1.0, "2.0"),
+    ("sequence", ff.DEFINE_sequence, ff.Sequence, (1, "x"), (2.0, "y")),
+    ("string", flags.DEFINE_string, ff.String, "one", "two"),
+    ("stringlist", flags.DEFINE_list, ff.StringList, ["a", "b"], "['c', 'd']"),
+)
+
+
+class FlagAndItemEquivalence(parameterized.TestCase):
+
+  @parameterized.named_parameters(*NAMES_ITEMS_AND_FLAGS)
+  def test_equivalence(
+      self,
+      define_function: Callable[..., flags.FlagHolder],
+      item_constructor: type(ff.Item),
+      default: Any,
+      override: str,
+  ):
+    flag_values = flags.FlagValues()
+    flag_holder = define_function(
+        "name.item",
+        default,
+        "help string",
+        flag_values=flag_values,
+    )
+
+    ff_flag_values = flags.FlagValues()
+    shared_values = ff.define_flags(
+        "name",
+        {"item": item_constructor(default, "help string")},
+        flag_values=ff_flag_values,
+    )
+
+    with self.subTest("Check serialisation equivalence before parsing"):
+      self.assertEqual(flag_values["name.item"].serialize(),
+                       ff_flag_values["name.item"].serialize())
+      self.assertEqual(flag_values.flags_into_string(),
+                       ff_flag_values.flags_into_string())
+
+    with self.subTest("Apply overrides and check equivalence after parsing"):
+      # The flag holder gets updated at this point:
+      flag_values(("./program", f"--name.item={override}"))
+      # The shared_values dict gets updated at this point:
+      ff_flag_values(("./program", f"--name.item={override}"))
+      self.assertNotEqual(flag_holder.value, default)
+      self.assertEqual(flag_holder.value, shared_values["item"])
 
 if __name__ == "__main__":
   absltest.main()
