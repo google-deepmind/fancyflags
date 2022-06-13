@@ -4,6 +4,7 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Added option to skip defining flags for a subset of arguments in `ff.auto`.
 *   Added support for functions or constructors without default arguments in
     `ff.DEFINE_auto`.
 *   Added a `case_sensitive` argument to `ff.EnumClass` and set to `False` by

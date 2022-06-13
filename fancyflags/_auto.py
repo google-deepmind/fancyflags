@@ -18,7 +18,7 @@ import enum
 import functools
 import inspect
 import typing
-from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Collection, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 import warnings
 
 from fancyflags import _definitions
@@ -94,6 +94,7 @@ def auto(
     callable_fn: Callable[..., Any],
     *,
     strict: bool = True,
+    skip_params: Collection[str] = (),
 ) -> Mapping[str, _definitions.Item]:
   """Automatically builds fancyflag definitions from a callable's signature.
 
@@ -119,6 +120,7 @@ def auto(
       silence real errors, but will allow decorated functions to contain
       non-default values, or values with defaults that can not be easily turned
       into a flag or overriden on the CLI.
+    skip_params: Optional parameter names to skip defining flags for.
 
   Returns:
     Mapping from parameter names to fancyflags `Item`s, to be splatted into
@@ -147,6 +149,9 @@ def auto(
   items: MutableMapping[str, _definitions.Item] = {}
   parameters: Iterable[inspect.Parameter]
   for param in parameters:
+
+    if param.name in skip_params:
+      continue
 
     # Check for potential errors.
     if param.annotation is inspect.Signature.empty:

@@ -223,5 +223,13 @@ class AutoTest(absltest.TestCase):
     ff.DEFINE_dict('my_function_settings', **ff_dict)
     self.assertEqual(FLAGS.my_function_settings, expected_settings)
 
+  def test_skip_params(self):
+
+    def my_function(a: int, b: str = 'hi'):
+      del a, b
+
+    items = ff.auto(my_function, skip_params={'b'})
+    self.assertSetEqual(set(items.keys()), {'a'})
+
 if __name__ == '__main__':
   absltest.main()
