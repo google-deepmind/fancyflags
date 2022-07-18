@@ -1,23 +1,37 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2021-10-12' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2022-07-18' } *-->
 
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
 ![PyPI version](https://badge.fury.io/py/fancyflags.svg)
 
-TIP: Already a fancyflags user? Check out our [usage tips](#tips)!
+## Introduction
 
-The main feature of `fancyflags` is a nested dict flag, with familiar "dot"
-overrides for fields. These dict flags:
+`fancyflags` is a Python library that extends
+[`absl.flags`](https://github.com/abseil/abseil-py) with additional structured
+flag types.
 
-*   Can be overridden with “dot” notation, similar to
-    [`config_flags`](https://github.com/google/ml_collections#usage).
-*   Are typed and validated like standard flags, catching errors before they
-    propagate into your program.
-*   Are easy to mix and match with standard flags, without adding extra files to
-    your codebase.
-*   Can be unpacked into constructor/function calls, e.g.
-    `replay(**FLAGS.replay)`.
+`fancyflags` provides flags corresponding to structures such as
+[dicts](#dict-flags), [dataclasses, and (somewhat) arbitrary callables](#auto).
+
+These flags are typed and validated like regular `absl` flags, catching errors
+before they propagate into your program. To override values, users can access
+familiar "dotted" flag names.
+
+TIP: Already a `fancyflags` user? Check out our [usage tips](#tips)!
+
+## A short note on design philosophy:
+
+`fancyflags` promotes mixing with regular `absl` flags. In many cases a few
+regular `absl` flags are all you need!
+
+`fancyflags` does not require you to modify library code: it should only be used
+in your "main" file
+
+`fancyflags` is not a dependency injection framework, and avoids
+programming-language-like power features. We prefer that users write regular
+Python for wiring up their code, because it's explicit, simple to understand,
+and allows static analysis tools to identify problems.
 
 ## Installation
 
@@ -39,7 +53,7 @@ or alternatively by checking out a local copy of our repository and running:
 pip install /path/to/local/fancyflags/
 ```
 
-## Quickstart
+## Dict flags
 
 If we have a class `Replay`, with arguments `capacity`, `priority_exponent` and
 others, we can define a corresponding dict flag in our main script
@@ -155,11 +169,11 @@ _NESTED_REPLAY_FLAG = ff.DEFINE_dict(
 )
 ```
 
-## "Auto" flags for functions and other structures.
+## "Auto" flags for functions and other structures {#auto}
 
-`fancyflags` also provides `ff.DEFINE_auto` which automatically generates a dict
-flag declaration corresponding to the signature of a given callable. The return
-value will also carry the correct type information.
+`fancyflags` also provides `ff.DEFINE_auto` which automatically generates a flag
+declaration corresponding to the signature of a given callable. The return value
+will also carry the correct type information.
 
 For example the callable could be a constructor
 
@@ -223,7 +237,7 @@ abseil-py's [flagsaver](https://github.com/abseil/abseil-py/blob/master/absl/tes
 module is useful for safely overriding flag values in test code. Here's how to
 make it work well with fancyflags.
 
-### Making dotted names work with `flagsaver` keyword arguments.
+### Making dotted names work with `flagsaver` keyword arguments
 
 Since `flagsaver` relies on keyword arguments, overriding a flag with a dot in
 its name will result in a `SyntaxError`:
