@@ -33,7 +33,7 @@ class Point:
 
 
 def greet(greeting: str = 'Hello', targets: Sequence[str] = ('world',)) -> str:
-  return greeting + ' ' + ', '.join(targets)
+  return greeting + ' ' + ', '.join(targets)  # pytype: disable=unsupported-operands
 
 
 class DefineAutoTest(absltest.TestCase):
@@ -161,7 +161,7 @@ class DefineAutoTest(absltest.TestCase):
 
     # Given a function without type hints...
     def my_function(a):
-      return a + 1
+      return a + 1  # pytype: disable=unsupported-operands
 
     # If we define an auto flag using this function in non-strict mode...
     flag_values = flags.FlagValues()
@@ -174,7 +174,7 @@ class DefineAutoTest(absltest.TestCase):
       flag_holder.value()
 
     # Calling with arguments should work fine.
-    self.assertEqual(flag_holder.value(a=2), 3)
+    self.assertEqual(flag_holder.value(a=2), 3)  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':
