@@ -69,9 +69,15 @@ class AutoTest(absltest.TestCase):
         'optional_list_int': None,
     }
     ff_dict = ff.auto(my_function)
-    self.assertCountEqual(expected_settings, ff_dict)
-    ff.DEFINE_dict('my_function_settings', **ff_dict)
-    self.assertEqual(FLAGS.my_function_settings, expected_settings)
+    self.assertEqual(expected_settings.keys(), ff_dict.keys())
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        'my_function_settings',
+        flag_values,
+        **ff_dict,
+    )
+    flag_values(('./program', ''))
+    self.assertEqual(flag_holder.value, expected_settings)
 
   def test_works_enum_fn(self):
 
@@ -126,9 +132,15 @@ class AutoTest(absltest.TestCase):
         'optional_list_int': None,
     }
     ff_dict = ff.auto(MyClass)
-    self.assertCountEqual(expected_settings, ff_dict)
-    ff.DEFINE_dict('my_class_settings', **ff_dict)
-    self.assertEqual(FLAGS.my_class_settings, expected_settings)
+    self.assertEqual(expected_settings.keys(), ff_dict.keys())
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        'my_class_settings',
+        flag_values,
+        **ff_dict,
+    )
+    flag_values(('./program', ''))
+    self.assertEqual(flag_holder.value, expected_settings)
 
   def test_works_metaclass(self):
 
@@ -147,13 +159,18 @@ class AutoTest(absltest.TestCase):
                    c: Sequence[int] = (1, 2, 3)):
         del a, b, c
 
+    expected = {'a': 10, 'b': 1.0, 'c': (1, 2, 3)}
     ff_dict = ff.auto(MyClass)
-    self.assertEqual(['a', 'b', 'c'], list(ff_dict))
+    self.assertEqual(ff_dict.keys(), expected.keys())
 
-    ff.DEFINE_dict('my_meta_class_settings', **ff_dict)
-    self.assertEqual(FLAGS.my_meta_class_settings['a'], 10)
-    self.assertEqual(FLAGS.my_meta_class_settings['b'], 1.0)
-    self.assertEqual(FLAGS.my_meta_class_settings['c'], (1, 2, 3))
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        'my_meta_class_settings',
+        flag_values,
+        **ff_dict,
+    )
+    flag_values(('./program', ''))
+    self.assertEqual(flag_holder.value, expected)
 
   def test_required_item_with_no_default(self):
     def my_function(a: int, b: float = 1.0, c: Sequence[int] = (1, 2, 3)):
@@ -214,14 +231,20 @@ class AutoTest(absltest.TestCase):
     def my_function(three_ints: Tuple[int, int, int] = (1, 2, 3),
                     zero_or_more_strings: Tuple[str, ...] = ('foo', 'bar')):
       del three_ints, zero_or_more_strings
-    expected_settings = {
+    expected = {
         'three_ints': (1, 2, 3),
         'zero_or_more_strings': ('foo', 'bar'),
     }
     ff_dict = ff.auto(my_function)
-    self.assertCountEqual(expected_settings, ff_dict)
-    ff.DEFINE_dict('my_function_settings', **ff_dict)
-    self.assertEqual(FLAGS.my_function_settings, expected_settings)
+    self.assertEqual(expected.keys(), ff_dict.keys())
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        'my_function_settings',
+        flag_values,
+        **ff_dict,
+    )
+    flag_values(('./program', ''))
+    self.assertEqual(flag_holder.value, expected)
 
   def test_skip_params(self):
 
