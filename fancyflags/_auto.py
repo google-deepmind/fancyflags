@@ -17,6 +17,7 @@
 import enum
 import functools
 import inspect
+import sys
 import typing
 from typing import Any, Callable, Collection, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 import warnings
@@ -26,10 +27,10 @@ from fancyflags import _definitions
 
 # TODO(b/178129474): Improve support for typing.Sequence subtypes.
 _TYPE_MAP = {
-    List[bool]: _definitions.Sequence,
-    List[float]: _definitions.Sequence,
-    List[int]: _definitions.Sequence,
-    List[str]: _definitions.Sequence,
+    List[bool]: _definitions.Sequence,  # pylint: disable=unhashable-member
+    List[float]: _definitions.Sequence,  # pylint: disable=unhashable-member
+    List[int]: _definitions.Sequence,  # pylint: disable=unhashable-member
+    List[str]: _definitions.Sequence,  # pylint: disable=unhashable-member
     Sequence[bool]: _definitions.Sequence,
     Sequence[float]: _definitions.Sequence,
     Sequence[int]: _definitions.Sequence,
@@ -47,6 +48,22 @@ _TYPE_MAP = {
     int: _definitions.Integer,
     str: _definitions.String,
 }
+if sys.version_info >= (3, 9):
+  # Support PEP 585 type hints.
+  _TYPE_MAP.update({
+      list[bool]: _definitions.Sequence,
+      list[float]: _definitions.Sequence,
+      list[int]: _definitions.Sequence,
+      list[str]: _definitions.Sequence,
+      tuple[bool, ...]: _definitions.Sequence,
+      tuple[bool]: _definitions.Sequence,
+      tuple[float, ...]: _definitions.Sequence,
+      tuple[float]: _definitions.Sequence,
+      tuple[int, ...]: _definitions.Sequence,
+      tuple[int]: _definitions.Sequence,
+      tuple[str, ...]: _definitions.Sequence,
+      tuple[str]: _definitions.Sequence,
+  })
 
 # Add optional versions of all types as well
 _TYPE_MAP.update({Optional[tp]: parser for tp, parser in _TYPE_MAP.items()})
