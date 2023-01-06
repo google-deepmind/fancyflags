@@ -22,7 +22,6 @@ from absl import flags
 
 from fancyflags import _argument_parsers
 from fancyflags import _flags
-# internal imports: usage_logging
 
 _T = TypeVar("_T")
 _EnumT = TypeVar("_EnumT", bound=enum.Enum)
@@ -123,8 +122,6 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
   flag_name = args[0]
 
   shared_dict = define_flags(flag_name, kwargs, flag_values=flag_values)
-
-  # usage_logging: dict
 
   # TODO(b/177672282): Can we persuade pytype to correctly infer the type of the
   #                    flagholder's .value attribute?
@@ -549,7 +546,6 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
   """Defines flag for MultiEnum."""
   parser = _argument_parsers.MultiEnumParser(enum_values)
   serializer = flags.ArgumentSerializer()
-  # usage_logging: multi_enum
   return flags.DEFINE(parser, name, default, help, flag_values, serializer,
                       **args,)
 
@@ -564,6 +560,5 @@ def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
   """Defines a flag for a list or tuple of simple types. See `Sequence` docs."""
   parser = _argument_parsers.SequenceParser()
   serializer = flags.ArgumentSerializer()
-  # usage_logging: sequence
   return flags.DEFINE(parser, name, default, help, flag_values, serializer,
                       **args,)

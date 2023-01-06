@@ -23,7 +23,6 @@ from typing import Any, Callable, Collection, Iterable, List, Mapping, MutableMa
 import warnings
 
 from fancyflags import _definitions
-# internal imports: usage_logging
 
 # TODO(b/178129474): Improve support for typing.Sequence subtypes.
 _TYPE_MAP = {
@@ -149,8 +148,6 @@ def auto(
     TypeError: If any of the arguments to `callable_fn` has an unsupported type.
     TypeError: If `callable_fn` is not callable.
   """
-  # usage_logging: auto
-
   if not callable(callable_fn):
     raise TypeError(f"Not a callable: {callable_fn}.")
 
