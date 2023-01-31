@@ -99,6 +99,17 @@ class SequenceParserTest(parameterized.TestCase):
         ValueError, _argument_parsers._EMPTY_STRING_ERROR_MESSAGE):
       self.parser.parse("")
 
+  @parameterized.parameters(
+      # ValueError from ast.literal_eval
+      "[foo, bar]",
+      # SyntaxError from ast.literal_eval
+      "['foo', 'bar'",
+      "[1 2]",
+  )
+  def test_parse_string_literal_error(self, input_string):
+    with self.assertRaisesRegex(ValueError, ".*as a python literal.*"):
+      self.parser.parse(input_string)
+
 
 class MultiEnumParserTest(parameterized.TestCase):
 

@@ -62,7 +62,13 @@ class SequenceParser(flags.ArgumentParser):
     elif isinstance(argument, str):
       if not argument:
         raise ValueError(_EMPTY_STRING_ERROR_MESSAGE)
-      result = ast.literal_eval(argument)
+      try:
+        result = ast.literal_eval(argument)
+      except (ValueError, SyntaxError) as e:
+        raise ValueError(
+            f'Failed to parse "{argument}" as a python literal.'
+        ) from e
+
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
         raise TypeError(
             "Input string should represent a list or tuple, however it "
