@@ -14,7 +14,7 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables."""
 
-from typing import Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar, Collection
 
 from absl import flags
 from fancyflags import _auto
@@ -34,6 +34,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     flag_values: flags.FlagValues = flags.FLAGS,
     *,
     strict: bool = True,
+    skip_params: Collection[str] = (),
 ) -> _flags.TypedFlagHolder[_F]:
   """Defines a flag for an `ff.auto`-compatible constructor or callable.
 
@@ -73,11 +74,12 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     flag_values: An optional `flags.FlagValues` instance.
     strict: Whether to skip flag definitions for arguments without type hints,
       or for arguments with unknown types.
+    skip_params: Optional parameter names to skip defining flags for.
 
   Returns:
     A `flags.FlagHolder`.
   """
-  arguments = _auto.auto(fn, strict=strict)
+  arguments = _auto.auto(fn, strict=strict, skip_params=skip_params)
   # Define the individual flags.
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
   help_string = help_string or f'{fn.__module__}.{fn.__name__}'

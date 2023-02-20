@@ -176,6 +176,12 @@ class DefineAutoTest(absltest.TestCase):
     # Calling with arguments should work fine.
     self.assertEqual(flag_holder.value(a=2), 3)  # pytype: disable=wrong-arg-types
 
+  def test_skip_params(self):
+    flag_values = flags.FlagValues()
+    _define_auto.DEFINE_auto(
+        'greet', greet, flag_values=flag_values, skip_params=('targets',))
+    self.assertNotIn('greet.targets', flag_values)
+
 
 if __name__ == '__main__':
   absltest.main()
