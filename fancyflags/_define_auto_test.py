@@ -171,7 +171,7 @@ class DefineAutoTest(absltest.TestCase):
     # Calling the function without arguments should error.
     flag_values(('./program', ''))
     with self.assertRaises(TypeError):
-      flag_holder.value()
+      flag_holder.value()  # pytype: disable=missing-parameter
 
     # Calling with arguments should work fine.
     self.assertEqual(flag_holder.value(a=2), 3)  # pytype: disable=wrong-arg-types
