@@ -4,6 +4,7 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Added support for DateTime flag type for `ff.DEFINE_auto`.
 *   Added option to skip defining flags for a subset of arguments in `ff.auto`.
 *   Added support for functions or constructors without default arguments in
     `ff.DEFINE_auto`.

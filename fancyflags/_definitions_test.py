@@ -15,6 +15,7 @@
 """Tests for definitions."""
 
 import copy
+import datetime
 import enum
 
 from typing import Any, Callable
@@ -295,6 +296,51 @@ class ExtractDefaultsTest(absltest.TestCase):
     with self.assertRaisesRegex(flags.IllegalFlagValueError,
                                 "Can't override a dict flag directly"):
       flag_values(("./program", "--top_level_dict=3"))
+
+
+class DateTimeTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="default_str",
+          default="2001-01-01",
+          expected=datetime.datetime(2001, 1, 1)),
+      dict(
+          testcase_name="default_datetime",
+          default=datetime.datetime(2001, 1, 1),
+          expected=datetime.datetime(2001, 1, 1)),
+      dict(
+          testcase_name="no_default",
+          default=None,
+          expected=None))
+  def test_define_datetime_default(self, default, expected):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_datetime",
+        flag_values,
+        my_datetime=ff.DateTime(default, "datetime field"),
+    )
+    flag_values(("./program", ""))
+    self.assertEqual(flag_holder.value, {"my_datetime": expected})
+
+  def test_define_datetime_invalid_default_raises(self):
+    with self.assertRaisesRegex(ValueError, r"invalid"):
+      ff.DEFINE_dict(
+          "dict_with_datetime",
+          my_datetime=ff.DateTime("42", "datetime field"),
+      )
+
+  def test_define_and_parse_invalid_value_raises(self):
+    flag_name = "dict_with_datetime"
+    flag_values = flags.FlagValues()
+    ff.DEFINE_dict(
+        flag_name,
+        flag_values,
+        my_datetime=ff.DateTime(None, "datetime field"),
+    )
+
+    with self.assertRaisesRegex(flags.IllegalFlagValueError, r"invalid"):
+      flag_values["dict_with_datetime.my_datetime"].parse("2001")
 
 
 class SequenceTest(absltest.TestCase):

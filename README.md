@@ -304,6 +304,7 @@ ff.Item             | Corresponding Flag
 `ff.MultiEnum`      | `ff.DEFINE_multi_enum`
 `ff.MultiEnumClass` | `flags.DEFINE_multi_enum_class`
 `ff.MultiString`    | `flags.DEFINE_multi_string`
+`ff.DateTime`       | -
 
 ### Defining a new `ff.Item`
 
@@ -317,7 +318,7 @@ uses, and write:
 ```python
 class SpaceSepList(ff.Item):
 
-  def __init__(self, help_string)
+  def __init__(self, default, help_string)
     parser = flags.WhitespaceSeparatedListParser()
     super(SpaceSepList, self).__init__(default, help_string, parser)
 

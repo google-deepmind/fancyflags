@@ -420,6 +420,23 @@ class String(Item[str]):
     )
 
 
+class DateTime(Item):
+
+  def __init__(
+      self,
+      default: Optional[str],
+      help_string: Optional[str] = None,
+      *,
+      required: bool = False,
+  ):
+    super(DateTime, self).__init__(
+        default,
+        help_string,
+        _argument_parsers.PossiblyNaiveDatetimeParser(),
+        required=required,
+    )
+
+
 class StringList(Item[Iterable[str]]):
   """A flag that implements the same behavior as absl.flags.DEFINE_list.
 

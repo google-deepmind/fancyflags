@@ -14,9 +14,15 @@
 # ============================================================================
 """Tests for argument_parsers."""
 
+import datetime
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from fancyflags import _argument_parsers
+
+
+UTC = datetime.timezone.utc
+TZINFO_4HRS = datetime.timezone(datetime.timedelta(hours=4))
 
 
 class SequenceParserTest(parameterized.TestCase):
@@ -144,6 +150,54 @@ class MultiEnumParserTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(ValueError, "Argument values should be one of"):
       self.parser.parse(inputs)
+
+
+class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
+
+  def test_parser_flag_type(self):
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    self.assertEqual("datetime.datetime", parser.flag_type())
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="date_string",
+          value="2011-11-04",
+          expected=datetime.datetime(2011, 11, 4, 0, 0)),
+      dict(
+          testcase_name="second_string",
+          value="2011-11-04T00:05:23",
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23)),
+      dict(
+          testcase_name="fractions_string",
+          value="2011-11-04 00:05:23.283",
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000)),
+      dict(
+          testcase_name="utc_string",
+          value="2011-11-04 00:05:23.283+00:00",
+          expected=datetime.datetime(
+              2011, 11, 4, 0, 5, 23, 283000, tzinfo=UTC)),
+      dict(
+          testcase_name="offset_string",
+          value="2011-11-04T00:05:23+04:00",
+          expected=datetime.datetime(
+              2011, 11, 4, 0, 5, 23, tzinfo=TZINFO_4HRS)),
+      dict(
+          testcase_name="datetime",
+          value=datetime.datetime(2011, 11, 4, 0, 0),
+          expected=datetime.datetime(2011, 11, 4, 0, 0)),
+  )
+  def test_parse(self, value, expected):
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    result = parser.parse(value)
+
+    self.assertIsInstance(result, datetime.datetime)
+    self.assertEqual(expected, result)
+
+  def test_parse_separator_plus_or_minus_raises(self):
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    with self.assertRaisesRegex(ValueError, r"separator between date and time"):
+      # Avoid confusion of 1970-01-01T08:00:00 vs. 1970-01-01T00:00:00-08:00
+      parser.parse("1970-01-01-08:00")
 
 
 if __name__ == "__main__":

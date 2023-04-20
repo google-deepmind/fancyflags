@@ -15,6 +15,7 @@
 """Argument parsers."""
 
 import ast
+import datetime
 import enum
 
 from absl import flags
@@ -142,3 +143,29 @@ class MultiEnumParser(flags.ArgumentParser):
 
   def flag_type(self):
     return "multi enum"
+
+
+class PossiblyNaiveDatetimeParser(flags.ArgumentParser):
+  """Parses an ISO format datetime string into a datetime.datetime."""
+
+  def parse(self, value) -> datetime.datetime:
+    if isinstance(value, datetime.datetime):
+      return value
+
+    # Handle ambiguous cases such as 2000-01-01+01:00, where the part after the
+    # '+' sign looks like timezone info but is actually just the time.
+    if value[10:11] in ("+", "-"):
+      # plus/minus as separator between date and time (can be any character)
+      raise ValueError(
+          f"datetime value {value!r} uses {value[10]!r} as separator "
+          "between date and time (excluded to avoid confusion between "
+          "time and offset). Use any other character instead, e.g. "
+          f"{value[:10] + 'T' + value[11:]!r}")
+
+    try:
+      return datetime.datetime.fromisoformat(value)
+    except ValueError as e:
+      raise ValueError(f"invalid datetime value {value!r}: {e}") from None
+
+  def flag_type(self) -> str:
+    return "datetime.datetime"

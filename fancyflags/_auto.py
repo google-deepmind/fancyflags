@@ -14,6 +14,7 @@
 # ============================================================================
 """Automatically builds flags from a callable signature."""
 
+import datetime
 import enum
 import functools
 import inspect
@@ -43,6 +44,7 @@ _TYPE_MAP = {
     Tuple[str, ...]: _definitions.Sequence,
     Tuple[str]: _definitions.Sequence,
     bool: _definitions.Boolean,
+    datetime.datetime: _definitions.DateTime,
     float: _definitions.Float,
     int: _definitions.Integer,
     str: _definitions.String,
