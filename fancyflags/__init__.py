@@ -31,8 +31,9 @@ from fancyflags._definitions import define_flags
 from fancyflags._auto import auto
 from fancyflags._define_auto import DEFINE_auto
 
-# Currently supported types inside the dict.
+# `Item` definitions for supported types.
 from fancyflags._definitions import Boolean
+from fancyflags._definitions import DateTime
 from fancyflags._definitions import Enum
 from fancyflags._definitions import EnumClass
 from fancyflags._definitions import Float
