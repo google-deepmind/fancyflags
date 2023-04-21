@@ -35,7 +35,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     *,
     strict: bool = True,
     skip_params: Collection[str] = (),
-) -> _flags.TypedFlagHolder[_F]:
+) -> flags.FlagHolder[_F]:
   """Defines a flag for an `ff.auto`-compatible constructor or callable.
 
   Automatically defines a set of dotted `ff.Item` flags corresponding to the
@@ -84,7 +84,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
   help_string = help_string or f'{fn.__module__}.{fn.__name__}'
   # Define a holder flag.
-  holder = flags.DEFINE_flag(
+  return flags.DEFINE_flag(
       flag=_flags.AutoFlag(
           fn,
           defaults,
@@ -95,5 +95,3 @@ def DEFINE_auto(  # pylint: disable=invalid-name
           help_string=help_string),
       flag_values=flag_values,
   )
-
-  return _flags.TypedFlagHolder(holder)
