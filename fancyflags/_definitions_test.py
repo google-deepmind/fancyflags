@@ -548,8 +548,10 @@ class SerializationTest(absltest.TestCase):
         "--to_serialize.enum_class_field=B",
     ])
     self.assertEqual(flag_values["to_serialize"].serialize(), _flags._EMPTY)
-    self.assertEqual(flag_values["to_serialize.boolean_field"].serialize(),
-                     "--to_serialize.boolean_field=True")
+    self.assertEqual(
+        flag_values["to_serialize.boolean_field"].serialize(),
+        "--to_serialize.boolean_field",
+    )
     self.assertEqual(flag_values["to_serialize.string_list_field"].serialize(),
                      "--to_serialize.string_list_field=d,e,f")
 
@@ -574,18 +576,49 @@ class SerializationTest(absltest.TestCase):
     flag_values(["./program"] + serialized_args)
     self.assertDictEqual(flag_values["to_serialize"].value, parsed_dict_value)
 
-# Format:
-# test name, flag define function, item, default value, override value
 NAMES_ITEMS_AND_FLAGS = (
-    # Booleans fail because of legacy absl flags behaviour of
-    # --flagname and --noflagname
-    # which shows up in serialisation.
-    # ("boolean", flags.DEFINE_boolean, ff.Boolean, True, "false"),
-    ("integer", flags.DEFINE_integer, ff.Integer, 1, "2"),
-    ("float", flags.DEFINE_float, ff.Float, 1.0, "2.0"),
-    ("sequence", ff.DEFINE_sequence, ff.Sequence, (1, "x"), (2.0, "y")),
-    ("string", flags.DEFINE_string, ff.String, "one", "two"),
-    ("stringlist", flags.DEFINE_list, ff.StringList, ["a", "b"], "['c', 'd']"),
+    dict(
+        testcase_name="boolean",
+        define_function=flags.DEFINE_boolean,
+        item_constructor=ff.Boolean,
+        default=True,
+        override="false",
+    ),
+    dict(
+        testcase_name="integer",
+        define_function=flags.DEFINE_integer,
+        item_constructor=ff.Integer,
+        default=1,
+        override="2",
+    ),
+    dict(
+        testcase_name="float",
+        define_function=flags.DEFINE_float,
+        item_constructor=ff.Float,
+        default=1.0,
+        override="2.0",
+    ),
+    dict(
+        testcase_name="sequence",
+        define_function=ff.DEFINE_sequence,
+        item_constructor=ff.Sequence,
+        default=(1, "x"),
+        override=(2.0, "y"),
+    ),
+    dict(
+        testcase_name="string",
+        define_function=flags.DEFINE_string,
+        item_constructor=ff.String,
+        default="one",
+        override="two",
+    ),
+    dict(
+        testcase_name="stringlist",
+        define_function=flags.DEFINE_list,
+        item_constructor=ff.StringList,
+        default=["a", "b"],
+        override="['c', 'd']",
+    ),
 )
 
 

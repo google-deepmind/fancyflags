@@ -13,6 +13,8 @@ All significant changes to this project will be documented here.
     [corresponding change](https://github.com/abseil/abseil-py/commit/eb94d9587c6f2eade9617237fb6bba1364226a3b)
     in `DEFINE_enum_class`
 *   Added support for variadic tuples in `ff.DEFINE_auto`.
+*   Added support for `--foo`/`--nofoo` syntax for passing boolean flags, made
+    this the default way of serializing such flags.
 
 ## [1.1]
 

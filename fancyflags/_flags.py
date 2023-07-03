@@ -45,7 +45,8 @@ class DictFlag(flags.Flag):
       return self._shared_dict
     raise flags.IllegalFlagValueError(
         "Can't override a dict flag directly. Did you mean to override one of "
-        "its `Item`s instead?")
+        "its `Item`s instead?"
+    )
 
   def serialize(self):
     # When serializing flags, we return a sentinel value that the `DictFlag`
@@ -55,6 +56,7 @@ class DictFlag(flags.Flag):
 
   def flag_type(self):
     return "dict"
+
 
 # TODO(b/170423907): Pytype doesn't correctly infer that these have type
 #                    `property`.
@@ -68,10 +70,17 @@ class ItemFlag(flags.Flag):
   See also the `DictFlag` and `ff.Item` classes for usage.
   """
 
-  def __init__(self, shared_dict, namespace, *args, **kwargs):
+  def __init__(self, shared_dict, namespace, parser, *args, **kwargs):
     self._shared_dict = shared_dict
     self._namespace = namespace
-    super().__init__(*args, **kwargs)
+    super().__init__(
+        *args,
+        parser=parser,
+        # absl treats boolean flags as a special case in order to support the
+        # alternative `--foo`/`--nofoo` syntax.
+        boolean=isinstance(parser, flags.BooleanParser),
+        **kwargs
+    )
 
   # `super().value = value` doesn't work, see https://bugs.python.org/issue14965
   @_flag_value_property.setter
@@ -156,7 +165,8 @@ class AutoFlag(flags.Flag):
       return None
     raise flags.IllegalFlagValueError(
         "Can't override an auto flag directly. Did you mean to override one of "
-        "its `Item`s instead?")
+        "its `Item`s instead?"
+    )
 
   def serialize(self):
     # When serializing a `FlagHolder` container, we must return *some* value for

@@ -30,6 +30,7 @@ class Point:
   x: float = 0.0
   y: float = 0.0
   label: str = ''
+  enable: bool = False
 
 
 def greet(greeting: str = 'Hello', targets: Sequence[str] = ('world',)) -> str:
@@ -41,10 +42,16 @@ class DefineAutoTest(absltest.TestCase):
   def test_dataclass(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'point', Point, flag_values=flag_values)
-    flag_values(
-        ('./program', '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
-    expected = Point(2.0, -1.5, 'p')
+        'point', Point, flag_values=flag_values
+    )
+    flag_values((
+        './program',
+        '--point.x=2.0',
+        '--point.y=-1.5',
+        '--point.label=p',
+        '--nopoint.enable',
+    ))
+    expected = Point(2.0, -1.5, 'p', False)
     self.assertEqual(expected, flag_holder.value())
 
   def test_dataclass_nodefaults(self):
@@ -86,9 +93,14 @@ class DefineAutoTest(absltest.TestCase):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
         'point', Point, flag_values=flag_values)
-    flag_values(
-        ('./program', '--point.x=2.0', '--point.y=-1.5', '--point.label=p'))
-    expected = Point(3.0, -1.5, 'p')
+    flag_values((
+        './program',
+        '--point.x=2.0',
+        '--point.y=-1.5',
+        '--point.label=p',
+        '--point.enable',
+    ))
+    expected = Point(3.0, -1.5, 'p', True)
     # Here we override one of the arguments.
     self.assertEqual(expected, flag_holder.value(x=3.0))
 
@@ -109,16 +121,24 @@ class DefineAutoTest(absltest.TestCase):
     initial_point_value = copy.deepcopy(flag_values['point'].value())
 
     # Parse flags, then serialize.
-    flag_values(
-        ('./program', '--point.x=1.2', '--point.y=3.5', '--point.label=p'))
+    flag_values((
+        './program',
+        '--point.x=1.2',
+        '--point.y=3.5',
+        '--point.label=p',
+        '--point.enable=True',
+    ))
 
     self.assertEqual(flag_values['point'].serialize(), _flags._EMPTY)
     self.assertEqual(flag_values['point.x'].serialize(), '--point.x=1.2')
     self.assertEqual(flag_values['point.label'].serialize(), '--point.label=p')
+    self.assertEqual(flag_values['point.enable'].serialize(), '--point.enable')
 
     parsed_point_value = copy.deepcopy(flag_values['point'].value())
 
-    self.assertEqual(parsed_point_value, Point(x=1.2, y=3.5, label='p'))
+    self.assertEqual(
+        parsed_point_value, Point(x=1.2, y=3.5, label='p', enable=True)
+    )
     self.assertNotEqual(parsed_point_value, initial_point_value)
 
     # Test a round trip.
