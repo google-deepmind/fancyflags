@@ -44,12 +44,15 @@ class SequenceParserTest(parameterized.TestCase):
     self.assertEqual(result, input_sequence)
 
   @parameterized.parameters(
-      (u"[1, 2, 3]", [1, 2, 3]),
+      ("[1, 2, 3]", [1, 2, 3]),
       ("[]", []),
       ("()", ()),
       ("['hello', 'world']", ["hello", "world"]),
       ("(3.14, 2.718)", (3.14, 2.718)),
-      ("(1, -1.0)", (1, -1.0),),
+      (
+          "(1, -1.0)",
+          (1, -1.0),
+      ),
   )
   def test_parse_input_string(self, input_string, expected):
     result = self.parser.parse(input_string)
@@ -59,7 +62,7 @@ class SequenceParserTest(parameterized.TestCase):
     self.assertEqual("{}".format(expected), input_string)
 
   @parameterized.parameters(
-      ("[\"hello\", u\"world\"]", ["hello", u"world"]),
+      ('["hello", u"world"]', ["hello", "world"]),
       ("(1,2,3)", (1, 2, 3)),
   )
   def test_parse_input_string_different_format(self, input_string, expected):
@@ -102,7 +105,8 @@ class SequenceParserTest(parameterized.TestCase):
 
   def test_empty_string(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, _argument_parsers._EMPTY_STRING_ERROR_MESSAGE):
+        ValueError, _argument_parsers._EMPTY_STRING_ERROR_MESSAGE
+    ):
       self.parser.parse("")
 
   @parameterized.parameters(
@@ -122,28 +126,28 @@ class MultiEnumParserTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.parser = _argument_parsers.MultiEnumParser(
-        ["a", "a", ["a"], "b", "c", 1, [2], {
-            "a": "d"
-        }])
+        ["a", "a", ["a"], "b", "c", 1, [2], {"a": "d"}]
+    )
 
-  @parameterized.parameters(('["a"]', ["a"]),
-                            ('[["a"], "a"]', [["a"], "a"]),
-                            ('[1, "a", {"a": "d"}]', [1, "a", {"a": "d"}])
-                           )
+  @parameterized.parameters(
+      ('["a"]', ["a"]),
+      ('[["a"], "a"]', [["a"], "a"]),
+      ('[1, "a", {"a": "d"}]', [1, "a", {"a": "d"}]),
+  )
   def test_parse_input(self, inputs, target):
     self.assertEqual(self.parser.parse(inputs), target)
 
-  @parameterized.parameters(("'a'", "evaluated as a"),
-                            (1, "Unsupported type"),
-                            ({"a"}, "Unsupported type"),
-                            ("''", "evaluated as a")
-                           )
+  @parameterized.parameters(
+      ("'a'", "evaluated as a"),
+      (1, "Unsupported type"),
+      ({"a"}, "Unsupported type"),
+      ("''", "evaluated as a"),
+  )
   def test_invalid_input_type(self, input_item, regex):
     with self.assertRaisesRegex(TypeError, regex):
       self.parser.parse(input_item)
 
-  @parameterized.parameters("[1, 2]",
-                            '["a", ["b"]]')
+  @parameterized.parameters("[1, 2]", '["a", ["b"]]')
   def test_out_of_enum_values(self, inputs):
     with self.assertRaisesRegex(ValueError, "Argument values should be one of"):
       self.parser.parse(inputs)
@@ -162,29 +166,33 @@ class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
       dict(
           testcase_name="date_string",
           value="2011-11-04",
-          expected=datetime.datetime(2011, 11, 4, 0, 0)),
+          expected=datetime.datetime(2011, 11, 4, 0, 0),
+      ),
       dict(
           testcase_name="second_string",
           value="2011-11-04T00:05:23",
-          expected=datetime.datetime(2011, 11, 4, 0, 5, 23)),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23),
+      ),
       dict(
           testcase_name="fractions_string",
           value="2011-11-04 00:05:23.283",
-          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000)),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000),
+      ),
       dict(
           testcase_name="utc_string",
           value="2011-11-04 00:05:23.283+00:00",
-          expected=datetime.datetime(
-              2011, 11, 4, 0, 5, 23, 283000, tzinfo=UTC)),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000, tzinfo=UTC),
+      ),
       dict(
           testcase_name="offset_string",
           value="2011-11-04T00:05:23+04:00",
-          expected=datetime.datetime(
-              2011, 11, 4, 0, 5, 23, tzinfo=TZINFO_4HRS)),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, tzinfo=TZINFO_4HRS),
+      ),
       dict(
           testcase_name="datetime",
           value=datetime.datetime(2011, 11, 4, 0, 0),
-          expected=datetime.datetime(2011, 11, 4, 0, 0)),
+          expected=datetime.datetime(2011, 11, 4, 0, 0),
+      ),
   )
   def test_parse(self, value, expected):
     parser = _argument_parsers.PossiblyNaiveDatetimeParser()

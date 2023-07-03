@@ -23,12 +23,10 @@ SETTINGS = ff.DEFINE_dict(
     "settings",
     integer_field=ff.Integer(1, "integer field"),
     string_field=ff.String(None, "string field"),
-    nested=dict(
-        float_field=ff.Float(0.0, "float field")
-    ),
+    nested=dict(float_field=ff.Float(0.0, "float field")),
     sequence_field=ff.Sequence([1, 2, 3], "sequence field"),
     another_sequence_field=ff.Sequence((3.14, 2.718), "another sequence field"),
-    string_list_field=ff.StringList(["a"], "string list flag.")
+    string_list_field=ff.StringList(["a"], "string list flag."),
 )
 
 

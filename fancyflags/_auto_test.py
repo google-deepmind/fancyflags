@@ -39,7 +39,6 @@ class MyEnum(enum.Enum):
 class AutoTest(absltest.TestCase):
 
   def test_works_fn(self):
-
     # pylint: disable=unused-argument
     def my_function(
         str_: str = 'foo',
@@ -55,6 +54,7 @@ class AutoTest(absltest.TestCase):
         optional_list_int: Optional[List[int]] = None,
     ):  # pylint: disable=dangerous-default-value
       pass
+
     # pylint: enable=unused-argument
     expected_settings = {
         'str_': 'foo',
@@ -82,9 +82,9 @@ class AutoTest(absltest.TestCase):
 
   @absltest.skipIf(
       condition=sys.version_info < (3, 9),
-      reason='Generics syntax for standard collections requires Python >= 3.9')
+      reason='Generics syntax for standard collections requires Python >= 3.9',
+  )
   def test_works_fn_pep585(self):
-
     def my_function(
         list_int: list[int] = [1, 2, 3],
         tuple_str: tuple[str] = ('foo',),
@@ -111,14 +111,12 @@ class AutoTest(absltest.TestCase):
     self.assertEqual(flag_holder.value, expected_settings)
 
   def test_works_enum_fn(self):
-
     # pylint: disable=unused-argument
     def my_function(
-        str_: str = 'foo',
-        int_: int = 10,
-        enum_: MyEnum = MyEnum.ZERO
+        str_: str = 'foo', int_: int = 10, enum_: MyEnum = MyEnum.ZERO
     ):
       pass
+
     # pylint: enable=unused-argument
     expected_settings = {
         'str_': 'foo',
@@ -129,7 +127,6 @@ class AutoTest(absltest.TestCase):
     self.assertCountEqual(expected_settings, ff_dict)
 
   def test_works_class(self):
-
     class MyClass:
 
       # pylint: disable=unused-argument
@@ -148,7 +145,9 @@ class AutoTest(absltest.TestCase):
           optional_list_int: Optional[List[int]] = None,
       ):  # pylint: disable=dangerous-default-value
         pass
+
       # pylint: enable=unused-argument
+
     expected_settings = {
         'str_': 'foo',
         'int_': 10,
@@ -175,9 +174,9 @@ class AutoTest(absltest.TestCase):
 
   @absltest.skipIf(
       condition=sys.version_info < (3, 9),
-      reason='Generics syntax for standard collections requires Python >= 3.9')
+      reason='Generics syntax for standard collections requires Python >= 3.9',
+  )
   def test_works_class_pep585(self):
-
     class MyClass:
 
       def __init__(
@@ -208,7 +207,6 @@ class AutoTest(absltest.TestCase):
     self.assertEqual(flag_holder.value, expected_settings)
 
   def test_works_metaclass(self):
-
     # This replicates an issue with Sonnet v2 modules, where the constructor
     # arguments are hidden by the metaclass.
     class MyMetaclass(abc.ABCMeta):
@@ -218,10 +216,9 @@ class AutoTest(absltest.TestCase):
 
     class MyClass(metaclass=MyMetaclass):
 
-      def __init__(self,
-                   a: int = 10,
-                   b: float = 1.0,
-                   c: Sequence[int] = (1, 2, 3)):
+      def __init__(
+          self, a: int = 10, b: float = 1.0, c: Sequence[int] = (1, 2, 3)
+      ):
         del a, b, c
 
     expected = {'a': 10, 'b': 1.0, 'c': (1, 2, 3)}
@@ -251,34 +248,36 @@ class AutoTest(absltest.TestCase):
       del a, b, c
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, _auto._MISSING_TYPE_ANNOTATION.format(name='b')):
+        TypeError, _auto._MISSING_TYPE_ANNOTATION.format(name='b')
+    ):
       ff.auto(my_function)
 
   def test_error_if_unsupported_type(self):
 
-    def my_function(a: int = 10,
-                    b: float = 1.0,
-                    c: Sequence[object] = (1, 2, 3)):
+    def my_function(
+        a: int = 10, b: float = 1.0, c: Sequence[object] = (1, 2, 3)
+    ):
       del a, b, c
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         _auto._UNSUPPORTED_ARGUMENT_TYPE.format(
-            name='c', annotation=Sequence[object])):
+            name='c', annotation=Sequence[object]
+        ),
+    ):
       ff.auto(my_function)
 
   def test_no_error_if_nonstrict_unsupported_type(self):
 
-    def my_function(a: int = 10,
-                    b: float = 1.0,
-                    c: Sequence[object] = (1, 2, 3)):
+    def my_function(
+        a: int = 10, b: float = 1.0, c: Sequence[object] = (1, 2, 3)
+    ):
       del a, b, c
 
     items = ff.auto(my_function, strict=False)
     self.assertSetEqual(set(items.keys()), {'a', 'b'})
 
   def test_no_error_if_nonstrict_no_type_annotation(self):
-
     def my_function(a, b: int = 3):
       del a, b
 
@@ -293,9 +292,12 @@ class AutoTest(absltest.TestCase):
   @absltest.expectedFailure
   def test_supports_tuples_with_more_than_one_element(self):
 
-    def my_function(three_ints: Tuple[int, int, int] = (1, 2, 3),
-                    zero_or_more_strings: Tuple[str, ...] = ('foo', 'bar')):
+    def my_function(
+        three_ints: Tuple[int, int, int] = (1, 2, 3),
+        zero_or_more_strings: Tuple[str, ...] = ('foo', 'bar'),
+    ):
       del three_ints, zero_or_more_strings
+
     expected = {
         'three_ints': (1, 2, 3),
         'zero_or_more_strings': ('foo', 'bar'),
@@ -312,12 +314,12 @@ class AutoTest(absltest.TestCase):
     self.assertEqual(flag_holder.value, expected)
 
   def test_skip_params(self):
-
     def my_function(a: int, b: str = 'hi'):
       del a, b
 
     items = ff.auto(my_function, skip_params={'b'})
     self.assertSetEqual(set(items.keys()), {'a'})
+
 
 if __name__ == '__main__':
   absltest.main()

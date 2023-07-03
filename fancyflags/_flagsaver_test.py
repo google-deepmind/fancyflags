@@ -35,10 +35,12 @@ FLAGS = flags.FLAGS
 class FlagSaverTest(absltest.TestCase):
 
   def test_flagsaver_with_context_overrides(self):
-    with flagsaver.flagsaver(**{
-        "string_flag": "new value",
-        "test_dict_flag.dict.nested": -1.0,
-    }):
+    with flagsaver.flagsaver(
+        **{
+            "string_flag": "new value",
+            "test_dict_flag.dict.nested": -1.0,
+        }
+    ):
       self.assertEqual("new value", FLAGS.string_flag)
       self.assertEqual(-1.0, FLAGS.test_dict_flag["dict"]["nested"])
       self.assertEqual(4, FLAGS.test_dict_flag["unnested"])
@@ -48,14 +50,15 @@ class FlagSaverTest(absltest.TestCase):
     self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])
 
   def test_flagsaver_with_decorator_overrides(self):
+    # Modeled after test_decorator_with_overrides in
+    # https://github.com/abseil/abseil-py/blob/master/absl/testing/tests/flagsaver_test.py  # pylint: disable=line-too-long
 
-  # Modeled after test_decorator_with_overrides in
-  # https://github.com/abseil/abseil-py/blob/master/absl/testing/tests/flagsaver_test.py  # pylint: disable=line-too-long
-
-    @flagsaver.flagsaver(**{
-        "string_flag": "new value",
-        "test_dict_flag.dict.nested": -1.0,
-    })
+    @flagsaver.flagsaver(
+        **{
+            "string_flag": "new value",
+            "test_dict_flag.dict.nested": -1.0,
+        }
+    )
     def mutate_flags():
       return FLAGS.string_flag, FLAGS.test_dict_flag["dict"]["nested"]
 
@@ -71,10 +74,12 @@ class FlagSaverTest(absltest.TestCase):
     # This might fail if the underlying absl functions copied the dict as part
     # of restoration.
 
-    with flagsaver.flagsaver(**{
-        "string_flag": "new value",
-        "test_dict_flag.dict.nested": -1.0,
-    }):
+    with flagsaver.flagsaver(
+        **{
+            "string_flag": "new value",
+            "test_dict_flag.dict.nested": -1.0,
+        }
+    ):
       self.assertEqual("new value", FLAGS.string_flag)
       self.assertEqual(-1.0, FLAGS.test_dict_flag["dict"]["nested"])
       self.assertEqual(4, FLAGS.test_dict_flag["unnested"])
@@ -85,10 +90,12 @@ class FlagSaverTest(absltest.TestCase):
 
     # Same again!
 
-    with flagsaver.flagsaver(**{
-        "string_flag": "new value",
-        "test_dict_flag.dict.nested": -1.0,
-    }):
+    with flagsaver.flagsaver(
+        **{
+            "string_flag": "new value",
+            "test_dict_flag.dict.nested": -1.0,
+        }
+    ):
       self.assertEqual("new value", FLAGS.string_flag)
       self.assertEqual(-1.0, FLAGS.test_dict_flag["dict"]["nested"])
       self.assertEqual(4, FLAGS.test_dict_flag["unnested"])
@@ -108,6 +115,7 @@ class FlagSaverTest(absltest.TestCase):
     self.assertEqual(1.0, FLAGS.test_dict_flag["dict"]["nested"])  # Works.
     # TODO(b/177927157) Fix this behaviour.
     self.assertEqual(4, FLAGS.test_dict_flag["unnested"])  # Broken.
+
 
 if __name__ == "__main__":
   absltest.main()

@@ -19,7 +19,6 @@ import enum
 from typing import Any, Generic, Iterable, Mapping, Optional, Type, TypeVar, Union
 
 from absl import flags
-
 from fancyflags import _argument_parsers
 from fancyflags import _flags
 
@@ -79,10 +78,10 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
   ```
 
   Args:
-    *args: One or two positional arguments are expected:
-        1. A string containing the root name for this flag. This must be set.
-        2. Optionally, a `flags.FlagValues` object that will hold the Flags.
-           If not set, the usual global `flags.FLAGS` object will be used.
+    *args: One or two positional arguments are expected: 1. A string containing
+      the root name for this flag. This must be set. 2. Optionally, a
+      `flags.FlagValues` object that will hold the Flags. If not set, the usual
+      global `flags.FLAGS` object will be used.
     **kwargs: One or more keyword arguments, where the value is either an
       `ff.Item` such as `ff.String(...)` or `ff.Integer(...)` or a dict with the
       same constraints.
@@ -91,30 +90,40 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
     A `FlagHolder` instance.
   """
   if not args:
-    raise ValueError("Please supply one positional argument containing the "
-                     "top-level flag name for the dict.")
+    raise ValueError(
+        "Please supply one positional argument containing the "
+        "top-level flag name for the dict."
+    )
 
   if not kwargs:
-    raise ValueError("Please supply at least one keyword argument defining a "
-                     "flag.""")
+    raise ValueError(
+        "Please supply at least one keyword argument defining a flag."
+    )
   if len(args) > 2:
-    raise ValueError("Please supply at most two positional arguments, the "
-                     "first containing the top-level flag name for the dict "
-                     "and, optionally and unusually, a second positional "
-                     "argument to override the flags.FlagValues instance to "
-                     "use.")
+    raise ValueError(
+        "Please supply at most two positional arguments, the "
+        "first containing the top-level flag name for the dict "
+        "and, optionally and unusually, a second positional "
+        "argument to override the flags.FlagValues instance to "
+        "use."
+    )
 
   if not isinstance(args[0], str):
-    raise ValueError("The first positional argument must be a string "
-                     "containing top-level flag name for the dict. Got a {}.".
-                     format(type(args[0]).__name__))
+    raise ValueError(
+        "The first positional argument must be a string "
+        "containing top-level flag name for the dict. Got a {}.".format(
+            type(args[0]).__name__
+        )
+    )
 
   if len(args) == 2:
     if not isinstance(args[1], flags.FlagValues):
-      raise ValueError("If supplying a second positional argument, this must "
-                       "be a flags.FlagValues instance. Got a {}. If you meant "
-                       "to define a flag, note these must be supplied as "
-                       "keyword arguments. ".format(type(args[1]).__name__))
+      raise ValueError(
+          "If supplying a second positional argument, this must "
+          "be a flags.FlagValues instance. Got a {}. If you meant "
+          "to define a flag, note these must be supplied as "
+          "keyword arguments. ".format(type(args[1]).__name__)
+      )
     flag_values = args[1]
   else:
     flag_values = flags.FLAGS
@@ -133,8 +142,10 @@ def DEFINE_dict(*args, **kwargs):  # pylint: disable=invalid-name
           default=shared_dict,
           parser=flags.ArgumentParser(),
           serializer=None,
-          help_string="Unused help string."),
-      flag_values=flag_values)
+          help_string="Unused help string.",
+      ),
+      flag_values=flag_values,
+  )
 
 
 def define_flags(
@@ -236,7 +247,8 @@ class Item(Generic[_T]):
       if required:
         # Mirror the strict behavior of abseil flags.
         raise ValueError(
-            "If marking an Item as required, the default must be None.")
+            "If marking an Item as required, the default must be None."
+        )
       self.default = parser.parse(default)  # pytype: disable=wrong-arg-types
 
     self.required = required
@@ -260,9 +272,9 @@ class Item(Generic[_T]):
       namespace: A sequence of strings that define the name of this flag. For
         example, `("foo", "bar")` will correspond to a flag named `foo.bar`.
       shared_dict: A dictionary that is shared by the top level dict flag. When
-        the individual flag created by this method is parsed, it will also
-        write the parsed value into `shared_dict`. The `namespace` determines
-        the flat or nested key when storing the parsed value.
+        the individual flag created by this method is parsed, it will also write
+        the parsed value into `shared_dict`. The `namespace` determines the flat
+        or nested key when storing the parsed value.
       flag_values: The `flags.FlagValues` instance to use.
 
     Returns:
@@ -337,7 +349,9 @@ class EnumClass(Item[_EnumT]):
   ):
     parser = flags.EnumClassParser(enum_class, case_sensitive=case_sensitive)
     super().__init__(
-        default, help_string, parser,
+        default,
+        help_string,
+        parser,
         flags.EnumClassSerializer(lowercase=False),
         required=required,
     )
@@ -351,10 +365,11 @@ class Float(Item[float]):
       default: Optional[float],
       help_string: Optional[str] = None,
       *,
-      required: bool = False
+      required: bool = False,
   ):
     super().__init__(
-        default, help_string, flags.FloatParser(), required=required)
+        default, help_string, flags.FloatParser(), required=required
+    )
 
 
 class Integer(Item[int]):
@@ -367,7 +382,8 @@ class Integer(Item[int]):
       required: bool = False,
   ):
     super().__init__(
-        default, help_string, flags.IntegerParser(), required=required)
+        default, help_string, flags.IntegerParser(), required=required
+    )
 
 
 class Sequence(Item, Generic[_T]):
@@ -471,8 +487,9 @@ class MultiItem(Generic[_T]):
     if default is None:
       self.default = default
     else:
-      if (isinstance(default, collections.abc.Iterable) and
-          not isinstance(default, (str, bytes))):
+      if isinstance(default, collections.abc.Iterable) and not isinstance(
+          default, (str, bytes)
+      ):
         # Convert all non-string iterables to lists.
         default = list(default)
 
@@ -507,8 +524,10 @@ class MultiItem(Generic[_T]):
             serializer=self._serializer,
             name=name,
             default=self.default,
-            help_string=help_string),
-        flag_values=flag_values)
+            help_string=help_string,
+        ),
+        flag_values=flag_values,
+    )
 
 
 class MultiEnum(Item[_T]):
@@ -563,8 +582,15 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
   """Defines flag for MultiEnum."""
   parser = _argument_parsers.MultiEnumParser(enum_values)
   serializer = flags.ArgumentSerializer()
-  return flags.DEFINE(parser, name, default, help, flag_values, serializer,
-                      **args,)
+  return flags.DEFINE(
+      parser,
+      name,
+      default,
+      help,
+      flag_values,
+      serializer,
+      **args,
+  )
 
 
 def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
@@ -577,5 +603,12 @@ def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
   """Defines a flag for a list or tuple of simple types. See `Sequence` docs."""
   parser = _argument_parsers.SequenceParser()
   serializer = flags.ArgumentSerializer()
-  return flags.DEFINE(parser, name, default, help, flag_values, serializer,
-                      **args,)
+  return flags.DEFINE(
+      parser,
+      name,
+      default,
+      help,
+      flag_values,
+      serializer,
+      **args,
+  )

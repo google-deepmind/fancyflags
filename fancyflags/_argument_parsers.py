@@ -28,8 +28,10 @@ SIMPLE_TYPES = (bool, float, int, str)
 NOT_A_SIMPLE_TYPE_MESSAGE = """
 Input list contains unsupported type {{}}, however each element in a sequence
 must be a {} or {}.
-""".format(", ".join(type_.__name__ for type_ in SIMPLE_TYPES[:-1]),
-           SIMPLE_TYPES[-1].__name__)
+""".format(
+    ", ".join(type_.__name__ for type_ in SIMPLE_TYPES[:-1]),
+    SIMPLE_TYPES[-1].__name__,
+)
 
 _EMPTY_STRING_ERROR_MESSAGE = """
 Empty sequences should be given explicitly as [] or () and not as an empty
@@ -73,7 +75,8 @@ class SequenceParser(flags.ArgumentParser):
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
         raise TypeError(
             "Input string should represent a list or tuple, however it "
-            "evaluated as a {}.".format(type(result).__name__))
+            "evaluated as a {}.".format(type(result).__name__)
+        )
     else:
       raise TypeError("Unsupported type {}.".format(type(argument).__name__))
 
@@ -111,7 +114,6 @@ class MultiEnumParser(flags.ArgumentParser):
     Args:
       arguments: list, tuple, or enum of flag values. Each value may be any type
 
-
     Returns:
       The input list, tuple or enum if valid.
 
@@ -131,13 +133,17 @@ class MultiEnumParser(flags.ArgumentParser):
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
         raise TypeError(
             "Input string should represent a list or tuple, however it "
-            "evaluated as a {}.".format(type(result).__name__))
+            "evaluated as a {}.".format(type(result).__name__)
+        )
     else:
       raise TypeError("Unsupported type {}.".format(type(arguments).__name__))
 
     if not all(arg in self.enum_values for arg in result):
-      raise ValueError("Argument values should be one of <{}>".format(
-          "|".join(str(value) for value in self.enum_values)))
+      raise ValueError(
+          "Argument values should be one of <{}>".format(
+              "|".join(str(value) for value in self.enum_values)
+          )
+      )
     else:
       return result
 
@@ -160,7 +166,8 @@ class PossiblyNaiveDatetimeParser(flags.ArgumentParser):
           f"datetime value {value!r} uses {value[10]!r} as separator "
           "between date and time (excluded to avoid confusion between "
           "time and offset). Use any other character instead, e.g. "
-          f"{value[:10] + 'T' + value[11:]!r}")
+          f"{value[:10] + 'T' + value[11:]!r}"
+      )
 
     try:
       return datetime.datetime.fromisoformat(value)

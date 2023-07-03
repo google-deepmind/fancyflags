@@ -18,6 +18,7 @@
 
 # Add current module to disclaimed module ids.
 from absl import flags
+
 flags.disclaim_key_flags()
 
 from fancyflags._metadata import __version__

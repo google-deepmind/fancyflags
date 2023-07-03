@@ -17,13 +17,11 @@
 import copy
 import datetime
 import enum
-
 from typing import Any, Callable
 
 from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
-
 # definitions almost exactly corresponds to the public API, so aliasing the
 # import here for better illustrative tests.
 from fancyflags import _definitions as ff
@@ -52,12 +50,13 @@ class FancyflagsTest(absltest.TestCase):
         "flat_dict",
         integer_field=ff.Integer(1, "integer field"),
         string_field=ff.String(""),
-        string_list_field=ff.StringList(["a", "b", "c"], "string list field"))
+        string_list_field=ff.StringList(["a", "b", "c"], "string list field"),
+    )
 
     expected = {
         "integer_field": 1,
         "string_field": "",
-        "string_list_field": ["a", "b", "c"]
+        "string_list_field": ["a", "b", "c"],
     }
     self.assertEqual(FLAGS.flat_dict, expected)
 
@@ -68,8 +67,9 @@ class FancyflagsTest(absltest.TestCase):
     # Custom help string.
     self.assertEqual(FLAGS["flat_dict.integer_field"].help, "integer field")
     # Default help string.
-    self.assertEqual(FLAGS["flat_dict.string_field"].help,
-                     "flat_dict.string_field")
+    self.assertEqual(
+        FLAGS["flat_dict.string_field"].help, "flat_dict.string_field"
+    )
 
   def test_define_with_custom_flagvalues(self):
     # Since ff.DEFINE_dict uses an optional positional argument to specify a
@@ -81,12 +81,13 @@ class FancyflagsTest(absltest.TestCase):
         flag_values,
         integer_field=ff.Integer(1, "integer field"),
         string_field=ff.String(""),
-        string_list_field=ff.StringList(["a", "b", "c"], "string list field"))
+        string_list_field=ff.StringList(["a", "b", "c"], "string list field"),
+    )
 
     expected = {
         "integer_field": 1,
         "string_field": "",
-        "string_list_field": ["a", "b", "c"]
+        "string_list_field": ["a", "b", "c"],
     }
     flag_values(("./program", ""))
     self.assertEqual(flag_values.flat_dict, expected)
@@ -96,11 +97,13 @@ class FancyflagsTest(absltest.TestCase):
     self.assertEqual(flag_values["flat_dict.string_field"].value, "")
 
     # Custom help string.
-    self.assertEqual(flag_values["flat_dict.integer_field"].help,
-                     "integer field")
+    self.assertEqual(
+        flag_values["flat_dict.integer_field"].help, "integer field"
+    )
     # Default help string.
-    self.assertEqual(flag_values["flat_dict.string_field"].help,
-                     "flat_dict.string_field")
+    self.assertEqual(
+        flag_values["flat_dict.string_field"].help, "flat_dict.string_field"
+    )
 
   def test_define_flat(self):
     flag_values = flags.FlagValues()
@@ -109,13 +112,14 @@ class FancyflagsTest(absltest.TestCase):
         flag_values,
         integer_field=ff.Integer(1, "integer field"),
         string_field=ff.String(""),
-        string_list_field=ff.StringList(["a", "b", "c"], "string list field"))
+        string_list_field=ff.StringList(["a", "b", "c"], "string list field"),
+    )
 
     # This should return a single dict with the default values specified above.
     expected = {
         "integer_field": 1,
         "string_field": "",
-        "string_list_field": ["a", "b", "c"]
+        "string_list_field": ["a", "b", "c"],
     }
     flag_values(("./program", ""))
     self.assertEqual(flag_values.flat_dict, expected)
@@ -127,9 +131,7 @@ class FancyflagsTest(absltest.TestCase):
         "nested_dict",
         flag_values,
         integer_field=ff.Integer(1, "integer field"),
-        sub_dict=dict(
-            string_field=ff.String("", "string field")
-        )
+        sub_dict=dict(string_field=ff.String("", "string field")),
     )
 
     # This should return a single dict with the default values specified above.
@@ -159,7 +161,7 @@ class FancyflagsTest(absltest.TestCase):
           "name",
           ff.String("foo", "string"),
           ff.String("bar", "string"),
-          integer_field=ff.Integer(1, "integer field")
+          integer_field=ff.Integer(1, "integer field"),
       )
 
   def test_flag_name_error(self):
@@ -167,7 +169,7 @@ class FancyflagsTest(absltest.TestCase):
       ff.DEFINE_dict(
           ff.String("name", "string flag"),
           ff.String("stringflag", "string"),
-          integer_field=ff.Integer(1, "integer field")
+          integer_field=ff.Integer(1, "integer field"),
       )
 
   def test_flag_values_error(self):
@@ -175,7 +177,7 @@ class FancyflagsTest(absltest.TestCase):
       ff.DEFINE_dict(
           "name",
           ff.String("stringflag", "string"),
-          integer_field=ff.Integer(1, "integer field")
+          integer_field=ff.Integer(1, "integer field"),
       )
 
   def test_define_valid_enum(self):
@@ -194,8 +196,9 @@ class FancyflagsTest(absltest.TestCase):
     flag_holder = ff.DEFINE_dict(
         "valid_case_sensitive",
         flag_values,
-        padding=ff.Enum("Same", ["same", "valid"], "enum field",
-                        case_sensitive=False),
+        padding=ff.Enum(
+            "Same", ["same", "valid"], "enum field", case_sensitive=False
+        ),
     )
     flag_values(("./program", ""))
     self.assertEqual(flag_holder.value, {"padding": "same"})
@@ -213,7 +216,7 @@ class FancyflagsTest(absltest.TestCase):
     flag_holder = ff.DEFINE_dict(
         "valid_enum_class",
         flag_values,
-        my_enum=ff.EnumClass(MyEnum.A, MyEnum, "enum class field")
+        my_enum=ff.EnumClass(MyEnum.A, MyEnum, "enum class field"),
     )
     flag_values(("./program", ""))
     self.assertEqual(flag_holder.value, {"my_enum": MyEnum.A})
@@ -226,25 +229,21 @@ class FancyflagsTest(absltest.TestCase):
 class ExtractDefaultsTest(absltest.TestCase):
 
   def test_valid_flat(self):
-    result = ff._extract_defaults(
-        {
-            "integer_field": ff.Integer(10, "Integer field"),
-            "string_field": ff.String("default", "String field"),
-        }
-    )
+    result = ff._extract_defaults({
+        "integer_field": ff.Integer(10, "Integer field"),
+        "string_field": ff.String("default", "String field"),
+    })
     expected = {"integer_field": 10, "string_field": "default"}
     self.assertEqual(result, expected)
 
   def test_valid_nested(self):
-    result = ff._extract_defaults(
-        {
-            "integer_field": ff.Integer(10, "Integer field"),
-            "string_field": ff.String("default", "String field"),
-            "nested": {
-                "float_field": ff.Float(3.1, "Float field"),
-            },
-        }
-    )
+    result = ff._extract_defaults({
+        "integer_field": ff.Integer(10, "Integer field"),
+        "string_field": ff.String("default", "String field"),
+        "nested": {
+            "float_field": ff.Float(3.1, "Float field"),
+        },
+    })
     expected = {
         "integer_field": 10,
         "string_field": "default",
@@ -255,46 +254,41 @@ class ExtractDefaultsTest(absltest.TestCase):
   def test_invalid_container(self):
     expected_message = ff._NOT_A_DICT_OR_ITEM.format("list")
     with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
-      ff._extract_defaults(
-          {
-              "integer_field": ff.Integer(10, "Integer field"),
-              "string_field": ff.String("default", "String field"),
-              "nested": [ff.Float(3.1, "Float field")],
-          }
-      )
+      ff._extract_defaults({
+          "integer_field": ff.Integer(10, "Integer field"),
+          "string_field": ff.String("default", "String field"),
+          "nested": [ff.Float(3.1, "Float field")],
+      })
 
   def test_invalid_flat_leaf(self):
     expected_message = ff._NOT_A_DICT_OR_ITEM.format("int")
     with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
-      ff._extract_defaults(
-          {
-              "string_field": ff.String("default", "String field"),
-              "naughty_field": 100,
-          }
-      )
+      ff._extract_defaults({
+          "string_field": ff.String("default", "String field"),
+          "naughty_field": 100,
+      })
 
   def test_invalid_nested_leaf(self):
     expected_message = ff._NOT_A_DICT_OR_ITEM.format("bool")
     with self.assertRaisesWithLiteralMatch(TypeError, expected_message):
-      ff._extract_defaults(
-          {
-              "string_field": ff.String("default", "String field"),
-              "nested": {
-                  "naughty_field": True,
-              },
-          }
-      )
+      ff._extract_defaults({
+          "string_field": ff.String("default", "String field"),
+          "nested": {
+              "naughty_field": True,
+          },
+      })
 
   def test_overriding_top_level_dict_flag_fails(self):
     flag_values = flags.FlagValues()
     ff.DEFINE_dict(
         "top_level_dict",
         flag_values,
-        integer_field=ff.Integer(1, "integer field")
+        integer_field=ff.Integer(1, "integer field"),
     )
     # The error type and message get converted in the process.
-    with self.assertRaisesRegex(flags.IllegalFlagValueError,
-                                "Can't override a dict flag directly"):
+    with self.assertRaisesRegex(
+        flags.IllegalFlagValueError, "Can't override a dict flag directly"
+    ):
       flag_values(("./program", "--top_level_dict=3"))
 
 
@@ -304,15 +298,15 @@ class DateTimeTest(parameterized.TestCase):
       dict(
           testcase_name="default_str",
           default="2001-01-01",
-          expected=datetime.datetime(2001, 1, 1)),
+          expected=datetime.datetime(2001, 1, 1),
+      ),
       dict(
           testcase_name="default_datetime",
           default=datetime.datetime(2001, 1, 1),
-          expected=datetime.datetime(2001, 1, 1)),
-      dict(
-          testcase_name="no_default",
-          default=None,
-          expected=None))
+          expected=datetime.datetime(2001, 1, 1),
+      ),
+      dict(testcase_name="no_default", default=None, expected=None),
+  )
   def test_define_datetime_default(self, default, expected):
     flag_values = flags.FlagValues()
     flag_holder = ff.DEFINE_dict(
@@ -352,14 +346,18 @@ class SequenceTest(absltest.TestCase):
         flag_values,
         int_sequence=ff.Sequence([1, 2, 3], "integer field"),
         float_sequence=ff.Sequence([3.14, 2.718], "float field"),
-        mixed_sequence=ff.Sequence([100, "hello", "world"], "mixed field")
+        mixed_sequence=ff.Sequence([100, "hello", "world"], "mixed field"),
     )
 
     flag_values(("./program", ""))
-    self.assertEqual(flag_holder.value,
-                     {"int_sequence": [1, 2, 3],
-                      "float_sequence": [3.14, 2.718],
-                      "mixed_sequence": [100, "hello", "world"]})
+    self.assertEqual(
+        flag_holder.value,
+        {
+            "int_sequence": [1, 2, 3],
+            "float_sequence": [3.14, 2.718],
+            "mixed_sequence": [100, "hello", "world"],
+        },
+    )
 
 
 class MultiEnumTest(parameterized.TestCase):
@@ -372,9 +370,10 @@ class MultiEnumTest(parameterized.TestCase):
         flag_values,
         int_sequence=ff.MultiEnum([1, 2, 3], enum_values, "integer field"),
         float_sequence=ff.MultiEnum([3.14, 2.718], enum_values, "float field"),
-        mixed_sequence=ff.MultiEnum([100, "hello", ["world"], {"planets"}],
-                                    enum_values, "mixed field"),
-        enum_sequence=ff.MultiEnum([MyEnum.A], MyEnum, "enum field")
+        mixed_sequence=ff.MultiEnum(
+            [100, "hello", ["world"], {"planets"}], enum_values, "mixed field"
+        ),
+        enum_sequence=ff.MultiEnum([MyEnum.A], MyEnum, "enum field"),
     )
 
     expected = {
@@ -518,7 +517,7 @@ class MultiStringTest(parameterized.TestCase):
         "no_default": None,
         "single_entry": ["a"],
         "single_entry_list": ["a"],
-        "multiple_entry_list": ["a", "b"]
+        "multiple_entry_list": ["a", "b"],
     }
     self.assertEqual(flag_holder.value, expected)
 
@@ -552,29 +551,37 @@ class SerializationTest(absltest.TestCase):
         flag_values["to_serialize.boolean_field"].serialize(),
         "--to_serialize.boolean_field",
     )
-    self.assertEqual(flag_values["to_serialize.string_list_field"].serialize(),
-                     "--to_serialize.string_list_field=d,e,f")
+    self.assertEqual(
+        flag_values["to_serialize.string_list_field"].serialize(),
+        "--to_serialize.string_list_field=d,e,f",
+    )
 
     parsed_dict_value = copy.deepcopy(flag_values["to_serialize"].value)
 
-    self.assertDictEqual(parsed_dict_value, {
-        "boolean_field": True,
-        "integer_field": 1337,
-        "string_list_field": ["d", "e", "f"],
-        "enum_class_field": MyEnum.B,
-    })
+    self.assertDictEqual(
+        parsed_dict_value,
+        {
+            "boolean_field": True,
+            "integer_field": 1337,
+            "string_list_field": ["d", "e", "f"],
+            "enum_class_field": MyEnum.B,
+        },
+    )
     self.assertNotEqual(flag_values["to_serialize"].value, initial_dict_value)
 
     # test a round trip
     serialized_args = [
-        flag_values[name].serialize() for name in flag_values
-        if name.startswith("to_serialize.")]
+        flag_values[name].serialize()
+        for name in flag_values
+        if name.startswith("to_serialize.")
+    ]
 
     flag_values.unparse_flags()  # Reset to defaults
     self.assertDictEqual(flag_values["to_serialize"].value, initial_dict_value)
 
     flag_values(["./program"] + serialized_args)
     self.assertDictEqual(flag_values["to_serialize"].value, parsed_dict_value)
+
 
 NAMES_ITEMS_AND_FLAGS = (
     dict(
@@ -648,10 +655,13 @@ class FlagAndItemEquivalence(parameterized.TestCase):
     )
 
     with self.subTest("Check serialisation equivalence before parsing"):
-      self.assertEqual(flag_values["name.item"].serialize(),
-                       ff_flagvalues["name.item"].serialize())
-      self.assertEqual(flag_values.flags_into_string(),
-                       ff_flagvalues.flags_into_string())
+      self.assertEqual(
+          flag_values["name.item"].serialize(),
+          ff_flagvalues["name.item"].serialize(),
+      )
+      self.assertEqual(
+          flag_values.flags_into_string(), ff_flagvalues.flags_into_string()
+      )
 
     with self.subTest("Apply overrides and check equivalence after parsing"):
       # The flag holder gets updated at this point:
@@ -660,6 +670,7 @@ class FlagAndItemEquivalence(parameterized.TestCase):
       ff_flagvalues(("./program", f"--name.item={override}"))
       self.assertNotEqual(flag_holder.value, default)
       self.assertEqual(flag_holder.value, shared_values["item"])
+
 
 if __name__ == "__main__":
   absltest.main()

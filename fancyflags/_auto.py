@@ -51,20 +51,22 @@ _TYPE_MAP = {
 }
 if sys.version_info >= (3, 9):
   # Support PEP 585 type hints.
-  _TYPE_MAP.update({
-      list[bool]: _definitions.Sequence,
-      list[float]: _definitions.Sequence,
-      list[int]: _definitions.Sequence,
-      list[str]: _definitions.Sequence,
-      tuple[bool, ...]: _definitions.Sequence,
-      tuple[bool]: _definitions.Sequence,
-      tuple[float, ...]: _definitions.Sequence,
-      tuple[float]: _definitions.Sequence,
-      tuple[int, ...]: _definitions.Sequence,
-      tuple[int]: _definitions.Sequence,
-      tuple[str, ...]: _definitions.Sequence,
-      tuple[str]: _definitions.Sequence,
-  })
+  _TYPE_MAP.update(
+      {
+          list[bool]: _definitions.Sequence,
+          list[float]: _definitions.Sequence,
+          list[int]: _definitions.Sequence,
+          list[str]: _definitions.Sequence,
+          tuple[bool, ...]: _definitions.Sequence,
+          tuple[bool]: _definitions.Sequence,
+          tuple[float, ...]: _definitions.Sequence,
+          tuple[float]: _definitions.Sequence,
+          tuple[int, ...]: _definitions.Sequence,
+          tuple[int]: _definitions.Sequence,
+          tuple[str, ...]: _definitions.Sequence,
+          tuple[str]: _definitions.Sequence,
+      }
+  )
 
 # Add optional versions of all types as well
 _TYPE_MAP.update({Optional[tp]: parser for tp, parser in _TYPE_MAP.items()})
@@ -73,7 +75,8 @@ _MISSING_TYPE_ANNOTATION = "Missing type annotation for argument {name!r}"
 _UNSUPPORTED_ARGUMENT_TYPE = (
     "No matching flag type for argument {{name!r}} with type annotation: "
     "{{annotation}}\n"
-    "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP)))
+    "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP))
+)
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
 _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
 _is_unsupported_type = lambda type_: not (type_ in _TYPE_MAP or _is_enum(type_))
@@ -104,7 +107,8 @@ def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
             default=orig_param.default,
             annotation=type_hints.get(key, orig_param.annotation),
             kind=orig_param.kind,
-        ))
+        )
+    )
   return orig_signature.replace(parameters=new_params)
 
 
@@ -128,11 +132,9 @@ def auto(
   Args:
     callable_fn: Generates flag definitions from this callable's signature. All
       arguments must have type annotations and default values. The following
-      argument types are supported:
-
-        * `bool`, `float`, `int`, or `str` scalars
-        * Homogeneous sequences of these types
-        * Optional scalars or sequences of these types
+      argument types are supported:  * `bool`, `float`, `int`, or `str` scalars
+      * Homogeneous sequences of these types * Optional scalars or sequences of
+      these types
     strict: A bool, whether invalid input types and defaults should trigger an
       error (the default) or be silently ignored. Setting strict=False might
       silence real errors, but will allow decorated functions to contain
@@ -165,7 +167,6 @@ def auto(
   items: MutableMapping[str, _definitions.Item] = {}
   parameters: Iterable[inspect.Parameter]
   for param in parameters:
-
     if param.name in skip_params:
       continue
 
@@ -173,8 +174,11 @@ def auto(
     if param.annotation is inspect.Signature.empty:
       exception = TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
     elif _is_unsupported_type(param.annotation):
-      exception = TypeError(_UNSUPPORTED_ARGUMENT_TYPE.format(
-          name=param.name, annotation=param.annotation))
+      exception = TypeError(
+          _UNSUPPORTED_ARGUMENT_TYPE.format(
+              name=param.name, annotation=param.annotation
+          )
+      )
     else:
       exception = None
 
@@ -192,7 +196,8 @@ def auto(
     # Look up the corresponding Item to create.
     if _is_enum(param.annotation):
       item_constructor = functools.partial(
-          _definitions.EnumClass, enum_class=param.annotation)
+          _definitions.EnumClass, enum_class=param.annotation
+      )
     else:
       item_constructor = _TYPE_MAP[param.annotation]
 

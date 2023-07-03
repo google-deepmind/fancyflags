@@ -20,7 +20,6 @@ from typing import Sequence
 
 from absl import flags
 from absl.testing import absltest
-
 from fancyflags import _define_auto
 from fancyflags import _flags
 
@@ -55,8 +54,8 @@ class DefineAutoTest(absltest.TestCase):
     self.assertEqual(expected, flag_holder.value())
 
   def test_dataclass_nodefaults(self):
-
     # Given a class constructor with non-default (required) argument(s)...
+
     @dataclasses.dataclass
     class MySettings:
       foo: str
@@ -65,11 +64,11 @@ class DefineAutoTest(absltest.TestCase):
     # If we define auto flags for it...
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'thing', MySettings, flag_values=flag_values)
+        'thing', MySettings, flag_values=flag_values
+    )
 
     # Then the corresponding flag is required: not passing it should error.
-    with self.assertRaisesRegex(
-        flags.IllegalFlagValueError, 'thing.foo'):
+    with self.assertRaisesRegex(flags.IllegalFlagValueError, 'thing.foo'):
       flag_values(('./program', ''))
 
     # Passing the required flag should work as normal.
@@ -80,11 +79,12 @@ class DefineAutoTest(absltest.TestCase):
   def test_function(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'greet', greet, flag_values=flag_values)
+        'greet', greet, flag_values=flag_values
+    )
     flag_values((
         './program',
         '--greet.greeting=Hi there',
-        '--greet.targets=(\'Alice\', \'Bob\')',
+        "--greet.targets=('Alice', 'Bob')",
     ))
     expected = 'Hi there Alice, Bob'
     self.assertEqual(expected, flag_holder.value())
@@ -92,7 +92,8 @@ class DefineAutoTest(absltest.TestCase):
   def test_override_kwargs(self):
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'point', Point, flag_values=flag_values)
+        'point', Point, flag_values=flag_values
+    )
     flag_values((
         './program',
         '--point.x=2.0',
@@ -107,8 +108,9 @@ class DefineAutoTest(absltest.TestCase):
   def test_overriding_top_level_auto_flag_fails(self):
     flag_values = flags.FlagValues()
     _define_auto.DEFINE_auto('point', Point, flag_values=flag_values)
-    with self.assertRaisesRegex(flags.IllegalFlagValueError,
-                                'Can\'t override an auto flag directly'):
+    with self.assertRaisesRegex(
+        flags.IllegalFlagValueError, "Can't override an auto flag directly"
+    ):
       flag_values(('./program', '--point=2.0'))
 
   def test_basic_serialization(self):
@@ -157,7 +159,8 @@ class DefineAutoTest(absltest.TestCase):
   def test_disclaimed_module(self):
     flag_values = flags.FlagValues()
     _ = _define_auto.DEFINE_auto(
-        'greet', greet, 'help string', flag_values=flag_values)
+        'greet', greet, 'help string', flag_values=flag_values
+    )
     defining_module = flag_values.find_module_defining_flag('greet')
 
     # The defining module should be the calling module, not the module where
@@ -172,13 +175,13 @@ class DefineAutoTest(absltest.TestCase):
     _define_auto.DEFINE_auto('greet', greet, flag_values=flag_values)
     # Should use the custom help string.
     _define_auto.DEFINE_auto(
-        'point', Point, help_string='custom', flag_values=flag_values)
+        'point', Point, help_string='custom', flag_values=flag_values
+    )
 
     self.assertEqual(flag_values['greet'].help, f'{greet.__module__}.greet')
     self.assertEqual(flag_values['point'].help, 'custom')
 
   def test_manual_nostrict_overrides_no_default(self):
-
     # Given a function without type hints...
     def my_function(a):
       return a + 1  # pytype: disable=unsupported-operands
@@ -186,7 +189,8 @@ class DefineAutoTest(absltest.TestCase):
     # If we define an auto flag using this function in non-strict mode...
     flag_values = flags.FlagValues()
     flag_holder = _define_auto.DEFINE_auto(
-        'foo', my_function, flag_values=flag_values, strict=False)
+        'foo', my_function, flag_values=flag_values, strict=False
+    )
 
     # Calling the function without arguments should error.
     flag_values(('./program', ''))
@@ -199,7 +203,8 @@ class DefineAutoTest(absltest.TestCase):
   def test_skip_params(self):
     flag_values = flags.FlagValues()
     _define_auto.DEFINE_auto(
-        'greet', greet, flag_values=flag_values, skip_params=('targets',))
+        'greet', greet, flag_values=flag_values, skip_params=('targets',)
+    )
     self.assertNotIn('greet.targets', flag_values)
 
 

@@ -35,8 +35,10 @@ class FlagsTest(absltest.TestCase):
             serializer=flags.ArgumentSerializer(),
             name='a.b',
             default='bar',
-            help_string='help string'),
-        flag_values=flag_values)
+            help_string='help string',
+        ),
+        flag_values=flag_values,
+    )
 
     flag_values['a.b'].value = 'new_value'
     with self.subTest(name='setter'):
@@ -60,8 +62,10 @@ class FlagsTest(absltest.TestCase):
             serializer=flags.ArgumentSerializer(),
             name='a.b',
             default=['foo', 'bar'],
-            help_string='help string'),
-        flag_values=flag_values)
+            help_string='help string',
+        ),
+        flag_values=flag_values,
+    )
 
     flag_values['a.b'].value = ['new', 'value']
     with self.subTest(name='setter'):
@@ -70,6 +74,7 @@ class FlagsTest(absltest.TestCase):
     flag_values(('./program', '--a.b=override1', '--a.b=override2'))
     with self.subTest(name='override_parse'):
       self.assertEqual(shared_dict, {'a': {'b': ['override1', 'override2']}})
+
 
 if __name__ == '__main__':
   absltest.main()

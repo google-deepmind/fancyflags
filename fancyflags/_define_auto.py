@@ -14,7 +14,7 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables."""
 
-from typing import Callable, Optional, TypeVar, Collection
+from typing import Callable, Collection, Optional, TypeVar
 
 from absl import flags
 from fancyflags import _auto
@@ -92,6 +92,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
           default=None,
           parser=flags.ArgumentParser(),
           serializer=None,
-          help_string=help_string),
+          help_string=help_string,
+      ),
       flag_values=flag_values,
   )
