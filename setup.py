@@ -14,17 +14,24 @@
 # ============================================================================
 """Install script for fancyflags."""
 
-import imp
-from setuptools import find_packages
-from setuptools import setup
+from importlib import util
+import setuptools
 
-setup(
+
+def _get_version():
+  spec = util.spec_from_file_location('_metadata', 'fancyflags/_metadata.py')
+  mod = util.module_from_spec(spec)
+  spec.loader.exec_module(mod)
+  return mod.__version__
+
+
+setuptools.setup(
     name='fancyflags',
-    version=imp.load_source('_metadata', 'fancyflags/_metadata.py').__version__,
+    version=_get_version(),
     description='A Python library for defining dictionary-valued flags.',
     author='DeepMind',
     license='Apache License, Version 2.0',
-    packages=find_packages(),
+    packages=setuptools.find_packages(),
     install_requires=['absl-py'],
     tests_require=['pytest'],
     classifiers=[
