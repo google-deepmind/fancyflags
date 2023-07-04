@@ -16,6 +16,7 @@ All significant changes to this project will be documented here.
 *   Added support for `--foo`/`--nofoo` syntax for passing boolean flags, made
     this the default way of serializing such flags.
 *   Dropped Python 3.7 support.
+*   Added Python 3.11 support.
 
 ## [1.1]
 
