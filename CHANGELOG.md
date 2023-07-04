@@ -4,6 +4,10 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [1.2]
+
+Release date: 2023-07-04
+
 *   Added support for DateTime flag type for `ff.DEFINE_auto`.
 *   Added option to skip defining flags for a subset of arguments in `ff.auto`.
 *   Added support for functions or constructors without default arguments in
@@ -20,6 +24,8 @@ All significant changes to this project will be documented here.
 
 ## [1.1]
 
+Release date: 2021-11-27
+
 *   Made help strings optional for all `Item`s and `MultiItem`s.
 *   Added `ff.DEFINE_auto`.
 *   Dropped Python 3.6 support.
@@ -32,6 +38,7 @@ Release date: 2021-02-08
 
 *   Initial release.
 
-[Unreleased]: https://github.com/deepmind/fancyflags/compare/v1.1...HEAD
+[Unreleased]: https://github.com/deepmind/fancyflags/compare/v1.2...HEAD
+[1.2]: https://github.com/deepmind/fancyflags/compare/v1.1...v1.2
 [1.1]: https://github.com/deepmind/fancyflags/compare/v1.0...v1.1
 [1.0]: https://github.com/deepmind/fancyflags/releases/tag/v1.0
