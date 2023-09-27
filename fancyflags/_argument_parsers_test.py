@@ -178,15 +178,19 @@ class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
           value="2011-11-04 00:05:23.283",
           expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000),
       ),
+      # It's OK to disable the g-tzinfo-datetime check here because it is meant
+      # to prevent users from passing the output of pytz.timezone() as tzinfo
+      # into the datetime constructor (see https://peps.python.org/pep-0431/).
+      # We are not using pytz here, but apparently pylint cannot detect that.
       dict(
           testcase_name="utc_string",
           value="2011-11-04 00:05:23.283+00:00",
-          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000, tzinfo=UTC),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, 283000, tzinfo=UTC),  # pylint: disable=g-tzinfo-datetime
       ),
       dict(
           testcase_name="offset_string",
           value="2011-11-04T00:05:23+04:00",
-          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, tzinfo=TZINFO_4HRS),
+          expected=datetime.datetime(2011, 11, 4, 0, 5, 23, tzinfo=TZINFO_4HRS),  # pylint: disable=g-tzinfo-datetime
       ),
       dict(
           testcase_name="datetime",

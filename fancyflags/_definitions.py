@@ -22,6 +22,7 @@ from absl import flags
 from fancyflags import _argument_parsers
 from fancyflags import _flags
 
+
 _T = TypeVar("_T")
 _EnumT = TypeVar("_EnumT", bound=enum.Enum)
 _MappingT = TypeVar("_MappingT", bound=Mapping[str, Any])

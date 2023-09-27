@@ -20,6 +20,7 @@ import enum
 
 from absl import flags
 
+
 BASIC_SEQUENCE_TYPES = (list, tuple)
 
 # We assume a sequence contains only these types. Python has no primitive types.

@@ -25,6 +25,7 @@ import warnings
 
 from fancyflags import _definitions
 
+
 # TODO(b/178129474): Improve support for typing.Sequence subtypes.
 _TYPE_MAP = {
     List[bool]: _definitions.Sequence,  # pylint: disable=unhashable-member
