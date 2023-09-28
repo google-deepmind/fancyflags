@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2022-07-18' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2023-09-28' } *-->
 
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
 ![PyPI version](https://badge.fury.io/py/fancyflags.svg)
