@@ -16,7 +16,7 @@
 
 import collections
 import enum
-from typing import Any, Generic, Iterable, Mapping, Optional, Type, TypeVar, Union
+from typing import Any, Generic, Iterable, Mapping, MutableMapping, Optional, Sequence as Sequence_, Type, TypeVar, Union
 
 from absl import flags
 from fancyflags import _argument_parsers
@@ -263,7 +263,7 @@ class Item(Generic[_T]):
 
   def define(
       self,
-      namespace: str,
+      namespace: Sequence_[str],
       shared_dict,
       flag_values: flags.FlagValues,
   ) -> flags.FlagHolder[_T]:
@@ -482,8 +482,8 @@ class MultiItem(Generic[_T]):
       self,
       default: Union[None, _T, Iterable[_T]],
       help_string: str,
-      parser: flags.ArgumentParser,
-      serializer: Optional[flags.ArgumentSerializer] = None,
+      parser: flags.ArgumentParser[Sequence_[_T]],
+      serializer: Optional[flags.ArgumentSerializer[Sequence_[_T]]] = None,
   ):
     if default is None:
       self.default = default
@@ -511,10 +511,10 @@ class MultiItem(Generic[_T]):
 
   def define(
       self,
-      namespace: str,
-      shared_dict,
-      flag_values,
-  ) -> flags.FlagHolder[Iterable[_T]]:
+      namespace: Sequence_[str],
+      shared_dict: MutableMapping[str, Any],
+      flag_values: flags.FlagValues,
+  ) -> flags.FlagHolder[Sequence_[_T]]:
     name = SEPARATOR.join(namespace)
     help_string = name if self._help_string is None else self._help_string
     return flags.DEFINE_flag(
@@ -577,7 +577,7 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
     default: Optional[Iterable[_T]],
     enum_values: Iterable[_T],
     help: str,
-    flag_values=flags.FLAGS,
+    flag_values: flags.FlagValues = flags.FLAGS,
     **args,
 ) -> flags.FlagHolder[_T]:
   """Defines flag for MultiEnum."""
@@ -598,7 +598,7 @@ def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
     name: str,
     default: Optional[Iterable[_T]],
     help: str,
-    flag_values=flags.FLAGS,
+    flag_values: flags.FlagValues = flags.FLAGS,
     **args,
 ) -> flags.FlagHolder[Iterable[_T]]:
   """Defines a flag for a list or tuple of simple types. See `Sequence` docs."""

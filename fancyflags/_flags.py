@@ -16,16 +16,20 @@
 
 import copy
 import functools
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
 
 from absl import flags
 
 _EMPTY = ""
 
+_T = TypeVar("_T")
+_CallableT = TypeVar("_CallableT", bound=Callable)
+
 
 class DictFlag(flags.Flag):
   """Implements the shared dict mechanism. See also `ItemFlag`."""
 
-  def __init__(self, shared_dict, *args, **kwargs):
+  def __init__(self, shared_dict: MutableMapping[str, Any], *args, **kwargs):
     self._shared_dict = shared_dict
     super().__init__(*args, **kwargs)
 
@@ -58,86 +62,107 @@ class DictFlag(flags.Flag):
     return "dict"
 
 
-# TODO(b/170423907): Pytype doesn't correctly infer that these have type
-#                    `property`.
-_flag_value_property = flags.Flag.value  # type: property  # pytype: disable=annotation-type-mismatch,unbound-type-param
-_multi_flag_value_property = flags.MultiFlag.value  # type: property  # pytype: disable=annotation-type-mismatch
-
-
-class ItemFlag(flags.Flag):
+class ItemFlag(flags.Flag[_T]):
   """Updates a shared dict whenever its own value changes.
 
   See also the `DictFlag` and `ff.Item` classes for usage.
   """
 
-  def __init__(self, shared_dict, namespace, parser, *args, **kwargs):
+  def __init__(
+      self,
+      shared_dict: MutableMapping[str, Any],
+      namespace: Sequence[str],
+      parser: flags.ArgumentParser[_T],
+      serializer: Optional[flags.ArgumentSerializer[_T]],
+      *args,
+      **kwargs
+  ):
     self._shared_dict = shared_dict
     self._namespace = namespace
     super().__init__(
         *args,
         parser=parser,
+        serializer=serializer,
         # absl treats boolean flags as a special case in order to support the
         # alternative `--foo`/`--nofoo` syntax.
         boolean=isinstance(parser, flags.BooleanParser),
         **kwargs
     )
 
-  # `super().value = value` doesn't work, see https://bugs.python.org/issue14965
-  @_flag_value_property.setter
-  def value(self, value):
-    _flag_value_property.fset(self, value)
+  @property
+  def value(self) -> Optional[_T]:
+    return self._value
+
+  @value.setter
+  def value(self, value: Optional[_T]):
+    self._value = value
     self._update_shared_dict()
 
-  def parse(self, argument):
+  def parse(self, argument: Union[Optional[_T], str]):
     super().parse(argument)
     self._update_shared_dict()
 
   def _update_shared_dict(self):
     d = self._shared_dict
     for name in self._namespace[:-1]:
+      assert isinstance(d[name], MutableMapping)
       d = d[name]
-    d[self._namespace[-1]] = self.value
+    d[self._namespace[-1]] = self._value
 
 
-class MultiItemFlag(flags.MultiFlag):
+class MultiItemFlag(flags.MultiFlag[_T]):
   """Updates a shared dict whenever its own value changes.
 
   Used for flags that can appear multiple times on the command line.
   See also the `DictFlag` and `ff.Item` classes for usage.
   """
 
-  def __init__(self, shared_dict, namespace, *args, **kwargs):
+  def __init__(
+      self,
+      shared_dict: MutableMapping[str, Any],
+      namespace: Sequence[str],
+      parser: flags.ArgumentParser[Sequence[_T]],
+      serializer: Optional[flags.ArgumentSerializer[Sequence[_T]]],
+      *args,
+      **kwargs
+  ):
     self._shared_dict = shared_dict
     self._namespace = namespace
-    super().__init__(*args, **kwargs)
+    super().__init__(parser, serializer, *args, **kwargs)
 
-  # `super().value = value` doesn't work, see https://bugs.python.org/issue14965
-  @_multi_flag_value_property.setter
-  def value(self, value):
-    _multi_flag_value_property.fset(self, value)
+  @property
+  def value(self) -> Optional[Sequence[_T]]:
+    return self._value
+
+  @value.setter
+  def value(self, value: Optional[Sequence[_T]]):
+    self._value = value
     self._update_shared_dict()
 
-  def parse(self, argument):
-    super().parse(argument)
+  def parse(self, arguments: Union[str, _T, Iterable[_T]]):
+    super().parse(arguments)
     self._update_shared_dict()
 
   def _update_shared_dict(self):
     d = self._shared_dict
     for name in self._namespace[:-1]:
+      assert isinstance(d[name], MutableMapping)
       d = d[name]
-    d[self._namespace[-1]] = self.value
+    d[self._namespace[-1]] = self._value
 
 
-class AutoFlag(flags.Flag):
+class AutoFlag(flags.Flag[_CallableT]):
   """Implements the shared dict mechanism."""
 
-  def __init__(self, fn, fn_kwargs, *args, **kwargs):
+  def __init__(
+      self, fn: _CallableT, fn_kwargs: Mapping[str, Any], *args, **kwargs
+  ):
     self._fn = fn
     self._fn_kwargs = fn_kwargs
     super().__init__(*args, **kwargs)
 
   @property
-  def value(self):
+  def value(self) -> _CallableT:
     kwargs = copy.deepcopy(self._fn_kwargs)
     return functools.partial(self._fn, **kwargs)
 

@@ -1,2 +1,2 @@
-absl-py==1.0.0
+absl-py==2.0.0
 pytest==6.2.5
