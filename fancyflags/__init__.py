@@ -45,6 +45,7 @@ from fancyflags._definitions import MultiString
 from fancyflags._definitions import Sequence
 from fancyflags._definitions import String
 from fancyflags._definitions import StringList
+from fancyflags._definitions import TimeDelta
 
 # Class for adding new flag types.
 from fancyflags._definitions import Item

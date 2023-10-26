@@ -46,6 +46,7 @@ _TYPE_MAP = {
     Tuple[str]: _definitions.Sequence,
     bool: _definitions.Boolean,
     datetime.datetime: _definitions.DateTime,
+    datetime.time: _definitions.TimeDelta,
     float: _definitions.Float,
     int: _definitions.Integer,
     str: _definitions.String,

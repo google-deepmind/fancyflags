@@ -305,6 +305,7 @@ ff.Item             | Corresponding Flag
 `ff.MultiEnumClass` | `flags.DEFINE_multi_enum_class`
 `ff.MultiString`    | `flags.DEFINE_multi_string`
 `ff.DateTime`       | -
+`ff.TimeDelta`      | -
 
 ### Defining a new `ff.Item`
 

@@ -212,5 +212,59 @@ class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
       parser.parse("1970-01-01-08:00")
 
 
+class PossiblyNaiveTimeDeltaFlagTest(parameterized.TestCase):
+
+  def test_parser_flag_type(self):
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+    self.assertEqual("datetime.timedelta", parser.flag_type())
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="simple_seconds",
+          value="17s",
+          expected=datetime.timedelta(seconds=17),
+      ),
+      dict(
+          testcase_name="all_units",
+          value="17w 3d 5h 19m 22s 10ms 42us",
+          expected=datetime.timedelta(
+              weeks=17,
+              days=3,
+              hours=5,
+              minutes=19,
+              seconds=22,
+              milliseconds=10,
+              microseconds=42,
+          ),
+      ),
+      dict(
+          testcase_name="normalization",
+          value="89m 125s",
+          expected=datetime.timedelta(minutes=89, seconds=125),
+      ),
+      dict(
+          testcase_name="spacing",
+          value="2 h  34 m",
+          expected=datetime.timedelta(hours=2, minutes=34),
+      ),
+      dict(
+          testcase_name="bad",
+          value="53u",
+          expected=datetime.timedelta(),
+          raises=ValueError,
+      ),
+  )
+  def test_parse(self, value, expected, raises=None):
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+
+    if raises is None:
+      result = parser.parse(value)
+      self.assertIsInstance(result, datetime.timedelta)
+      self.assertEqual(expected, result)
+    else:
+      with self.assertRaises(raises):
+        parser.parse(value)
+
+
 if __name__ == "__main__":
   absltest.main()

@@ -17,6 +17,7 @@
 import ast
 import datetime
 import enum
+import re
 
 from absl import flags
 
@@ -177,3 +178,45 @@ class PossiblyNaiveDatetimeParser(flags.ArgumentParser):
 
   def flag_type(self) -> str:
     return "datetime.datetime"
+
+
+class PossiblyNaiveTimeDeltaParser(flags.ArgumentParser):
+  """Parses a string into a datetime.timedelta.
+
+  Accepts a string in human-readable format, e.g.
+
+  '1d 5h 2s' or '3w 10ms'
+
+  where the units range from weeks ('w') to microseconds ('us').
+  """
+
+  def __init__(self):
+    super().__init__()
+    units = [
+        ("weeks", "w"),
+        ("days", "d"),
+        ("hours", "h"),
+        ("minutes", "m"),
+        ("seconds", "s"),
+        ("milliseconds", "ms"),
+        ("microseconds", "us"),
+    ]
+    groups = []
+    for name, unit in units:
+      groups.append(f"((?P<{name}>\\d+)\\s*{unit}\\s*)?")
+    self._re = re.compile("".join(groups))
+
+  def parse(self, value) -> datetime.timedelta:
+    if isinstance(value, datetime.timedelta):
+      return value
+
+    match = self._re.fullmatch(value.strip())
+    if not match:
+      raise ValueError(f"invalid timedelta value {value!r}")
+
+    # Map back to kwargs that datetime.timedelta understands.
+    kwargs = {k: int(v) for k, v in match.groupdict().items() if v}
+    return datetime.timedelta(**kwargs)
+
+  def flag_type(self) -> str:
+    return "datetime.timedelta"
