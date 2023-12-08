@@ -14,6 +14,7 @@
 # ============================================================================
 """Automatically builds flags from a callable signature."""
 
+import collections.abc
 import datetime
 import enum
 import functools
@@ -53,22 +54,24 @@ _TYPE_MAP = {
 }
 if sys.version_info >= (3, 9):
   # Support PEP 585 type hints.
-  _TYPE_MAP.update(
-      {
-          list[bool]: _definitions.Sequence,
-          list[float]: _definitions.Sequence,
-          list[int]: _definitions.Sequence,
-          list[str]: _definitions.Sequence,
-          tuple[bool, ...]: _definitions.Sequence,
-          tuple[bool]: _definitions.Sequence,
-          tuple[float, ...]: _definitions.Sequence,
-          tuple[float]: _definitions.Sequence,
-          tuple[int, ...]: _definitions.Sequence,
-          tuple[int]: _definitions.Sequence,
-          tuple[str, ...]: _definitions.Sequence,
-          tuple[str]: _definitions.Sequence,
-      }
-  )
+  _TYPE_MAP.update({
+      collections.abc.Sequence[bool]: _definitions.Sequence,
+      collections.abc.Sequence[float]: _definitions.Sequence,
+      collections.abc.Sequence[int]: _definitions.Sequence,
+      collections.abc.Sequence[str]: _definitions.Sequence,
+      list[bool]: _definitions.Sequence,
+      list[float]: _definitions.Sequence,
+      list[int]: _definitions.Sequence,
+      list[str]: _definitions.Sequence,
+      tuple[bool, ...]: _definitions.Sequence,
+      tuple[bool]: _definitions.Sequence,
+      tuple[float, ...]: _definitions.Sequence,
+      tuple[float]: _definitions.Sequence,
+      tuple[int, ...]: _definitions.Sequence,
+      tuple[int]: _definitions.Sequence,
+      tuple[str, ...]: _definitions.Sequence,
+      tuple[str]: _definitions.Sequence,
+  })
 
 # Add optional versions of all types as well
 _TYPE_MAP.update({Optional[tp]: parser for tp, parser in _TYPE_MAP.items()})

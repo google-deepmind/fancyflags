@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import abc
+import collections.abc
 import enum
 import sys
 from typing import List, Optional, Sequence, Tuple
@@ -85,19 +86,29 @@ class AutoTest(absltest.TestCase):
       reason='Generics syntax for standard collections requires Python >= 3.9',
   )
   def test_works_fn_pep585(self):
+
     def my_function(
         list_int: list[int] = [1, 2, 3],
         tuple_str: tuple[str] = ('foo',),
         variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
         optional_list_int: Optional[list[int]] = None,
+        sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
     ):  # pylint: disable=dangerous-default-value
-      del list_int, tuple_str, variadic_tuple_str, optional_list_int  # Unused.
+      # Unused.
+      del (
+          list_int,
+          tuple_str,
+          variadic_tuple_str,
+          optional_list_int,
+          sequence_str,
+      )
 
     expected_settings = {
         'list_int': [1, 2, 3],
         'tuple_str': ('foo',),
         'variadic_tuple_str': ('foo', 'bar'),
         'optional_list_int': None,
+        'sequence_str': ('bar', 'baz'),
     }
     ff_dict = ff.auto(my_function)
     self.assertEqual(expected_settings.keys(), ff_dict.keys())
@@ -185,15 +196,23 @@ class AutoTest(absltest.TestCase):
           tuple_str: tuple[str] = ('foo',),
           variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
           optional_list_int: Optional[list[int]] = None,
+          sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
       ):  # pylint: disable=dangerous-default-value
         # Unused.
-        del list_int, tuple_str, variadic_tuple_str, optional_list_int
+        del (
+            list_int,
+            tuple_str,
+            variadic_tuple_str,
+            optional_list_int,
+            sequence_str,
+        )
 
     expected_settings = {
         'list_int': [1, 2, 3],
         'tuple_str': ('foo',),
         'variadic_tuple_str': ('foo', 'bar'),
         'optional_list_int': None,
+        'sequence_str': ('bar', 'baz'),
     }
     ff_dict = ff.auto(MyClass)
     self.assertEqual(expected_settings.keys(), ff_dict.keys())
