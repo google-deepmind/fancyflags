@@ -307,8 +307,6 @@ class AutoTest(absltest.TestCase):
     with self.assertRaises(TypeError):
       ff.auto(3)  # pytype: disable=wrong-arg-types
 
-  # TODO(b/178129474): Improve support for typing.Sequence subtypes.
-  @absltest.expectedFailure
   def test_supports_tuples_with_more_than_one_element(self):
 
     def my_function(

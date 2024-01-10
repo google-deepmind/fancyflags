@@ -19,32 +19,17 @@ import datetime
 import enum
 import functools
 import inspect
-import sys
+import types
 import typing
-from typing import Any, Callable, Collection, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Collection, Iterable, Literal, Mapping, MutableMapping, Optional, Type, TypeVar, Union
 import warnings
 
 from fancyflags import _definitions
 
 
-# TODO(b/178129474): Improve support for typing.Sequence subtypes.
-_TYPE_MAP = {
-    List[bool]: _definitions.Sequence,  # pylint: disable=unhashable-member
-    List[float]: _definitions.Sequence,  # pylint: disable=unhashable-member
-    List[int]: _definitions.Sequence,  # pylint: disable=unhashable-member
-    List[str]: _definitions.Sequence,  # pylint: disable=unhashable-member
-    Sequence[bool]: _definitions.Sequence,
-    Sequence[float]: _definitions.Sequence,
-    Sequence[int]: _definitions.Sequence,
-    Sequence[str]: _definitions.Sequence,
-    Tuple[bool, ...]: _definitions.Sequence,
-    Tuple[bool]: _definitions.Sequence,
-    Tuple[float, ...]: _definitions.Sequence,
-    Tuple[float]: _definitions.Sequence,
-    Tuple[int, ...]: _definitions.Sequence,
-    Tuple[int]: _definitions.Sequence,
-    Tuple[str, ...]: _definitions.Sequence,
-    Tuple[str]: _definitions.Sequence,
+_T = TypeVar("_T")
+
+_ITEM_BY_TYPE = {
     bool: _definitions.Boolean,
     datetime.datetime: _definitions.DateTime,
     datetime.timedelta: _definitions.TimeDelta,
@@ -52,39 +37,31 @@ _TYPE_MAP = {
     int: _definitions.Integer,
     str: _definitions.String,
 }
-if sys.version_info >= (3, 9):
-  # Support PEP 585 type hints.
-  _TYPE_MAP.update({
-      collections.abc.Sequence[bool]: _definitions.Sequence,
-      collections.abc.Sequence[float]: _definitions.Sequence,
-      collections.abc.Sequence[int]: _definitions.Sequence,
-      collections.abc.Sequence[str]: _definitions.Sequence,
-      list[bool]: _definitions.Sequence,
-      list[float]: _definitions.Sequence,
-      list[int]: _definitions.Sequence,
-      list[str]: _definitions.Sequence,
-      tuple[bool, ...]: _definitions.Sequence,
-      tuple[bool]: _definitions.Sequence,
-      tuple[float, ...]: _definitions.Sequence,
-      tuple[float]: _definitions.Sequence,
-      tuple[int, ...]: _definitions.Sequence,
-      tuple[int]: _definitions.Sequence,
-      tuple[str, ...]: _definitions.Sequence,
-      tuple[str]: _definitions.Sequence,
-  })
 
-# Add optional versions of all types as well
-_TYPE_MAP.update({Optional[tp]: parser for tp, parser in _TYPE_MAP.items()})
+try:
+  # The origin type of `Union[x,y]` is `typing.Union`, But using PEP604 syntax
+  # the origin type of `x | y` is `types.UnionType`. Accept either when defined.
+  _UNION_TYPES = frozenset({Union, types.UnionType})
+except AttributeError:
+  _UNION_TYPES = frozenset({Union})
+
 
 _MISSING_TYPE_ANNOTATION = "Missing type annotation for argument {name!r}"
 _UNSUPPORTED_ARGUMENT_TYPE = (
     "No matching flag type for argument {{name!r}} with type annotation: "
     "{{annotation}}\n"
-    "Supported types:\n{}".format("\n".join(str(t) for t in _TYPE_MAP))
 )
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
 _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
-_is_unsupported_type = lambda type_: not (type_ in _TYPE_MAP or _is_enum(type_))
+
+
+def _is_sequence(type_: Type[Any]) -> bool:
+  type_ = typing.get_origin(type_) or type_
+  return (
+      inspect.isclass(type_)
+      and issubclass(type_, collections.abc.Sequence)
+      and not issubclass(type_, (str, bytes, bytearray, memoryview))
+  )
 
 
 def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
@@ -115,6 +92,66 @@ def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
         )
     )
   return orig_signature.replace(parameters=new_params)
+
+
+def _auto_from_value(
+    field_name: str,
+    field_type: Type[_T],
+    field_value: Union[_T, Literal[inspect.Parameter.empty]],
+) -> Optional[_definitions.Item]:
+  """Creates an Item for a single value."""
+
+  # Resolve Optional[T] and T | None to T
+  if typing.get_origin(field_type) in _UNION_TYPES:
+    union_args = set(typing.get_args(field_type)) - {type(None)}
+    if len(union_args) > 1:
+      raise TypeError(
+          _UNSUPPORTED_ARGUMENT_TYPE.format(
+              name=field_name, annotation=field_type
+          )
+      )
+    field_type = union_args.pop()
+
+  # Look up the corresponding Item to create.
+  if _is_enum(field_type):
+    item_constructor = functools.partial(
+        _definitions.EnumClass, enum_class=field_type
+    )
+  elif _is_sequence(field_type):
+    args = typing.get_args(field_type)
+    # TODO(b/178129474): Improve handling of args to ensure that parsed
+    # sequences have the correct type.
+    if args[0] not in _ITEM_BY_TYPE:
+      raise TypeError(
+          _UNSUPPORTED_ARGUMENT_TYPE.format(
+              name=field_name, annotation=field_type
+          )
+      )
+    item_constructor = _definitions.Sequence
+  else:
+    try:
+      item_constructor = _ITEM_BY_TYPE[field_type]
+    except KeyError as e:
+      raise TypeError(
+          _UNSUPPORTED_ARGUMENT_TYPE.format(
+              name=field_name, annotation=field_type
+          )
+      ) from e
+
+  # If there is no default argument for this parameter, we set the
+  # corresponding `Flag` as `required`.
+  if field_value is inspect.Parameter.empty:
+    default = None
+    required = True
+  else:
+    default = field_value
+    required = False
+
+  return item_constructor(
+      default,
+      help_string=field_name,
+      required=required,
+  )
 
 
 def auto(
@@ -174,52 +211,17 @@ def auto(
   for param in parameters:
     if param.name in skip_params:
       continue
-
-    # Check for potential errors.
-    if param.annotation is inspect.Signature.empty:
-      exception = TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
-    elif _is_unsupported_type(param.annotation):
-      exception = TypeError(
-          _UNSUPPORTED_ARGUMENT_TYPE.format(
-              name=param.name, annotation=param.annotation
-          )
-      )
-    else:
-      exception = None
-
-    # If we saw an error, decide whether to raise or skip based on strictness.
-    if exception:
+    try:
+      if param.annotation is inspect.Parameter.empty:
+        raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
+      if item := _auto_from_value(param.name, param.annotation, param.default):
+        items[param.name] = item
+    except Exception as e:  # pylint:disable=broad-exception-caught
       if strict:
-        raise exception
-      else:
-        warnings.warn(
-            f"Caught an exception ({exception}) when defining flags for "
-            f"parameter {param}; skipping because strict=False..."
-        )
-        continue
-
-    # Look up the corresponding Item to create.
-    if _is_enum(param.annotation):
-      item_constructor = functools.partial(
-          _definitions.EnumClass, enum_class=param.annotation
+        raise
+      warnings.warn(
+          f"Caught an exception ({e}) when defining flags for "
+          f"parameter {param.name} with type {param.annotation}; "
+          "skipping because strict=False..."
       )
-    else:
-      item_constructor = _TYPE_MAP[param.annotation]
-
-    # If there is no default argument for this parameter, we set the
-    # corresponding `Flag` as `required`.
-    if param.default is inspect.Signature.empty:
-      default = None
-      required = True
-    else:
-      default = param.default
-      required = False
-
-    # TODO(b/177673667): Parse the help string from docstring.
-    items[param.name] = item_constructor(
-        default,
-        help_string=param.name,
-        required=required,
-    )
-
   return items
