@@ -48,8 +48,8 @@ except AttributeError:
 
 _MISSING_TYPE_ANNOTATION = "Missing type annotation for argument {name!r}"
 _UNSUPPORTED_ARGUMENT_TYPE = (
-    "No matching flag type for argument {{name!r}} with type annotation: "
-    "{{annotation}}\n"
+    "No matching flag type for argument {name!r} with type annotation: "
+    "{annotation}\n"
 )
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
 _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)

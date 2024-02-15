@@ -21,6 +21,7 @@ from __future__ import annotations
 import abc
 import collections.abc
 import enum
+import re
 import sys
 from typing import List, Optional, Sequence, Tuple
 
@@ -278,11 +279,9 @@ class AutoTest(absltest.TestCase):
     ):
       del a, b, c
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        _auto._UNSUPPORTED_ARGUMENT_TYPE.format(
-            name='c', annotation=Sequence[object]
-        ),
+        "for argument 'c'.*annotation: " + re.escape(f'{Sequence[object]!r}'),
     ):
       ff.auto(my_function)
 
