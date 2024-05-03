@@ -4,6 +4,8 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Make `_auto_from_value` public as `ff.auto_from_value`.
+
 ## [1.2]
 
 Release date: 2023-07-04

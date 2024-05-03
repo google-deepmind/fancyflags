@@ -94,12 +94,12 @@ def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
   return orig_signature.replace(parameters=new_params)
 
 
-def _auto_from_value(
+def auto_from_value(
     field_name: str,
     field_type: Type[_T],
     field_value: Union[_T, Literal[inspect.Parameter.empty]],
 ) -> Optional[_definitions.Item]:
-  """Creates an Item for a single value."""
+  """Creates an `Item` for a single value."""
 
   # Resolve Optional[T] and T | None to T
   if typing.get_origin(field_type) in _UNION_TYPES:
@@ -214,7 +214,7 @@ def auto(
     try:
       if param.annotation is inspect.Parameter.empty:
         raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
-      if item := _auto_from_value(param.name, param.annotation, param.default):
+      if item := auto_from_value(param.name, param.annotation, param.default):
         items[param.name] = item
     except Exception as e:  # pylint:disable=broad-exception-caught
       if strict:
