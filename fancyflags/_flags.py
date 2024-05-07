@@ -47,9 +47,13 @@ class DictFlag(flags.Flag):
     #    set the dict flag to an empty string from the command line.
     if value is self._shared_dict or value == _EMPTY:
       return self._shared_dict
+
+    possible_overrides = "\n".join(
+        f"  --{self.name}.{k}" for k in self._shared_dict
+    )
     raise flags.IllegalFlagValueError(
-        "Can't override a dict flag directly. Did you mean to override one of "
-        "its `Item`s instead?"
+        "Can't override a dict flag directly. Did you mean to override one of:"
+        f"\n{possible_overrides}"
     )
 
   def serialize(self):
@@ -188,9 +192,12 @@ class AutoFlag(flags.Flag[_CallableT]):
     #    set the auto flag to an empty string from the command line.
     if value is None or value == _EMPTY:
       return None
+    possible_overrides = "\n".join(
+        f"  --{self.name}.{k}" for k in self._fn_kwargs.keys()
+    )
     raise flags.IllegalFlagValueError(
         "Can't override an auto flag directly. Did you mean to override one of "
-        "its `Item`s instead?"
+        f"\n{possible_overrides}"
     )
 
   def serialize(self):
