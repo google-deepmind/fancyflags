@@ -344,8 +344,8 @@ _writer_items = dict(
 _WRITER_KWARGS = ff.define_flags("writer", _writer_items)
 ```
 
-This example defines the flags `replay.capacity` and `replay.priority_exponent`
-only: does _not_ define a dict-flag. The return value (`REPLAY`) is a
+This example defines the flags `writer.path` and `writer.log_every_n`
+only: does _not_ define a dict-flag. The return value (`_WRITER_KWARGS`) is a
 dictionary that contains the default values. Any overrides to the individual
 flags will also update the corresponding item in this dictionary.
 
