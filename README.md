@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2023-09-28' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2024-12-12' } *-->
 
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
 ![PyPI version](https://badge.fury.io/py/fancyflags.svg)
@@ -227,7 +227,6 @@ function calls.
 `ff.DEFINE_auto` and `ff.auto` will work if:
 
 1.  The function or class constructor has type annotations.
-1.  Each argument has a default value.
 1.  The types of the arguments are relatively simple types (`int`, `str`,
     `bool`, `float`, or sequences thereof).
 
