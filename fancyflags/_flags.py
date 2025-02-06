@@ -209,3 +209,73 @@ class AutoFlag(flags.Flag[_CallableT]):
 
   def flag_type(self):
     return "auto"
+
+
+class HierarchicalAutoFlag(flags.Flag):
+  """A Hierarchical version of AutoFlag.
+
+  Used to construct structures beyond nested dictionaries, for example a
+  dataclass containing nested dataclasses.
+  """
+
+  def __init__(
+      self,
+      fn: _CallableT,
+      fn_kwargs: Mapping[str, Any],
+      dependent_flagholders: Mapping[str, flags.FlagHolder],
+      *args,
+      **kwargs,
+  ):
+    """Initializes a new HierarchicalAutoFlag.
+
+    Args:
+      fn: The function or constructor that will return the value.
+      fn_kwargs: The arguments to pass to the function or constructor.
+      dependent_flagholders: A mapping from a subset of `fn` argument names to
+        `FlagHolder`s. This is used to implement the construction according to a
+        topological sort, for example for nested dataclasses.
+      *args: Positional arguments to pass to the base `Flag` constructor.
+      **kwargs: Keyword arguments to pass to the base `Flag` constructor.
+    """
+    self._fn = fn
+    self._fn_kwargs = fn_kwargs
+    self._dependent_flagholders = dependent_flagholders
+    super().__init__(*args, **kwargs)
+
+  @property
+  def value(self) -> _CallableT:
+    def build_dependencies(*args, **kwargs):
+      # Note that this will reconstruct the dependencies every time
+      # build_dependencies is called, which matches the semantics of
+      # ff.DEFINE_auto.
+      dependencies = {
+          k: fh.value() for k, fh in self._dependent_flagholders.items()
+      }
+      # The precedence is: Flag values, found dependencies, and finally
+      # overrides from the callsite. Note that this can even override
+      # dependencies!
+      actual_kwargs = {**self._fn_kwargs, **dependencies, **kwargs}
+      return self._fn(*args, **actual_kwargs)
+
+    return build_dependencies
+
+  @value.setter
+  def value(self, value):
+    # See docs in `AutoFlag` for explanations on these behaviors.
+    del value
+
+  def _parse(self, value) -> None:
+    # See docs in `AutoFlag` for explanations on these behaviors.
+    if value is None or value == _EMPTY:
+      return None
+    raise flags.IllegalFlagValueError(
+        "Can't override an auto flag directly. Did you mean to override one of "
+        "its `Item`s instead?"
+    )
+
+  def serialize(self) -> str:
+    # See docs in fancyflags' `AutoFlag` for explanations on these behaviors.
+    return _EMPTY
+
+  def flag_type(self) -> str:
+    return "hierarchical_auto"
