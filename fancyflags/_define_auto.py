@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Automatic flags via ff.auto-compatible callables."""
+"""Automatic flags via ff.auto-compatible callables and example structures."""
 
-from typing import Callable, Collection, Optional, TypeVar
+import dataclasses
+import typing
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Protocol, TypeVar, Union
+import warnings
 
 from absl import flags
 from fancyflags import _auto
 from fancyflags import _definitions
 from fancyflags import _flags
 
-_F = TypeVar('_F', bound=Callable)
+_F = TypeVar("_F", bound=Callable)
 
 # Add current module to disclaimed module ids.
 flags.disclaim_key_flags()
@@ -82,12 +85,111 @@ def DEFINE_auto(  # pylint: disable=invalid-name
   arguments = _auto.auto(fn, strict=strict, skip_params=skip_params)
   # Define the individual flags.
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
-  help_string = help_string or f'{fn.__module__}.{fn.__name__}'
+  help_string = help_string or f"{fn.__module__}.{fn.__name__}"
   # Define a holder flag.
   return flags.DEFINE_flag(
       flag=_flags.AutoFlag(
           fn,
           defaults,
+          name=name,
+          default=None,
+          parser=flags.ArgumentParser(),
+          serializer=None,
+          help_string=help_string,
+      ),
+      flag_values=flag_values,
+  )
+
+
+class IsDataclass(Protocol):
+  __dataclass_fields__: Dict[str, dataclasses.Field[Any]]
+
+
+_D = TypeVar("_D", bound=Union[IsDataclass, Mapping[str, Any]])
+
+
+def _should_recurse_from_value(value: Any) -> bool:
+  return dataclasses.is_dataclass(value) or isinstance(value, Mapping)
+
+
+def DEFINE_from_instance(  # pylint: disable=invalid-name
+    name: str,
+    value: _D,
+    help_string: Optional[str] = None,
+    flag_values: flags.FlagValues = flags.FLAGS,
+    should_recurse: Callable[[Any], bool] = _should_recurse_from_value,
+) -> flags.FlagHolder[Callable[..., _D]]:
+  """Recursively defines flags from a mapping or dataclass instance.
+
+  Args:
+    name: The name for the top-level flag.
+    value: An instance of a dataclass or a mapping. The structure will be used
+      to define nested flags. The return value of the flagholder will be a
+      callable that returns a structure matching the provided dataclass or
+      mapping.
+    help_string: Optional help string for this flag.
+    flag_values: An optional `flags.FlagValues` instance.
+    should_recurse: An optional custom function that takes a value and returns
+      whether it should be recursively defined as a flag. By defult this will
+      recurse on dataclasses and mappings.
+
+  Returns:
+    A `flags.FlagHolder`.
+  """
+  recursed = {}
+
+  if dataclasses.is_dataclass(value):
+    names_to_types = typing.get_type_hints(type(value))
+    names_to_values = {k: getattr(value, k) for k in names_to_types}
+  elif isinstance(value, Mapping):
+    names_to_values = value
+    names_to_types = {k: type(v) for k, v in value.items()}
+  else:
+    raise TypeError(f"Not a dataclass instance or mapping: {value}.")
+
+  for field_name, field_value in names_to_values.items():
+    if should_recurse(field_value):
+      component_name = f"{name}.{field_name}"
+      flagholder = DEFINE_from_instance(
+          component_name,
+          value=field_value,
+          flag_values=flag_values,
+          should_recurse=should_recurse,
+      )
+      recursed[field_name] = flagholder
+
+  remaining_params = {}
+  unsupported_params = {}
+  for field_name, field_type in names_to_types.items():
+    if field_name in recursed:
+      continue
+    field_value = names_to_values[field_name]
+    try:
+      # pylint:disable-next=protected-access
+      item = _auto.auto_from_value(field_name, field_type, field_value)
+    except Exception as e:  # pylint:disable=broad-exception-caught
+      warnings.warn(
+          f"Caught an exception ({e}) when defining flags for "
+          f"parameter {field_name} with type {field_value}; "
+          "skipping because strict=False..."
+      )
+      item = None
+    if item is not None:
+      remaining_params[field_name] = item
+    else:
+      # Use the field_value if the type isn't supported by ff for overriding.
+      unsupported_params[field_name] = field_value
+
+  defaults = _definitions.define_flags(
+      name, remaining_params, flag_values=flag_values
+  )
+  defaults.update(unsupported_params)
+
+  return flags.DEFINE_flag(
+      flag=_flags.HierarchicalAutoFlag(
+          fn=type(value),
+          fn_kwargs=defaults,
+          dependent_flagholders=recursed,
           name=name,
           default=None,
           parser=flags.ArgumentParser(),

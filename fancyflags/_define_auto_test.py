@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Tests for fancyflags._define_auto."""
-
 import copy
 import dataclasses
-from typing import Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from absl import flags
 from absl.testing import absltest
@@ -30,6 +28,23 @@ class Point:
   y: float = 0.0
   label: str = ''
   enable: bool = False
+
+
+@dataclasses.dataclass
+class NestedDataClass:
+  inner: Point = dataclasses.field(default_factory=Point)
+  some_attr: int = 3
+
+
+@dataclasses.dataclass
+class HasUnsupportedField:
+  f: Callable[[], int] = lambda: 0
+
+
+@dataclasses.dataclass
+class NestedWithDict:
+  point: Point = dataclasses.field(default_factory=Point)
+  mapping: Mapping[str, Any] = dataclasses.field(default_factory=dict)
 
 
 def greet(greeting: str = 'Hello', targets: Sequence[str] = ('world',)) -> str:
@@ -206,6 +221,60 @@ class DefineAutoTest(absltest.TestCase):
         'greet', greet, flag_values=flag_values, skip_params=('targets',)
     )
     self.assertNotIn('greet.targets', flag_values)
+
+
+class DefineAutoFromValueTest(absltest.TestCase):
+
+  def test_shallow_dataclass(self):
+    flag_values = flags.FlagValues()
+    point = Point(y=1.0, label='p')
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'point', point, flag_values=flag_values
+    )
+    flag_values(('./program', '--point.x=2.0', '--point.label=q'))
+    expected = Point(2.0, 1.0, 'q')
+    self.assertEqual(expected, flag_holder.value())
+
+  def test_nested_dataclass(self):
+    flag_values = flags.FlagValues()
+    defaults = NestedDataClass(inner=Point(y=1.0), some_attr=2)
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'nested', defaults, flag_values=flag_values
+    )
+    flag_values(('./program', '--nested.inner.x=2.0', '--nested.some_attr=4'))
+    expected = NestedDataClass(some_attr=4, inner=Point(2.0, 1.0))
+    self.assertEqual(expected, flag_holder.value())
+
+  def test_nested_dataclass_with_unsupported_field(self):
+    """Tests that unsupported fields (e.g. a function) are used for defaults."""
+    flag_values = flags.FlagValues()
+    defaults = HasUnsupportedField(f=lambda: 1)  # change from returning 0
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'config', defaults, flag_values=flag_values
+    )
+    flag_values(('./program',))
+    value = flag_holder.value()
+    self.assertEqual(value.f(), 1)
+
+  def test_nested_dataclass_with_mapping(self):
+    flag_values = flags.FlagValues()
+    defaults = NestedWithDict(
+        point=Point(y=1.0),
+        mapping=dict(
+            p=Point(y=2.0),
+            z='z',
+        ),
+    )
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'nested', defaults, flag_values=flag_values
+    )
+    flag_values(
+        ('./program', '--nested.mapping.p.x=1.0', '--nested.mapping.z=zz')
+    )
+    expected = NestedWithDict(
+        point=Point(y=1.0), mapping=dict(p=Point(x=1.0, y=2.0), z='zz')
+    )
+    self.assertEqual(expected, flag_holder.value())
 
 
 if __name__ == '__main__':

@@ -28,10 +28,11 @@ from fancyflags._definitions import DEFINE_dict
 from fancyflags._definitions import DEFINE_sequence
 from fancyflags._definitions import define_flags
 
-# Automatically build fancyflags defs from a callable signature.
+# Automatically build fancyflags defs from callables and values.
 from fancyflags._auto import auto
 from fancyflags._auto import auto_from_value
 from fancyflags._define_auto import DEFINE_auto
+from fancyflags._define_auto import DEFINE_from_instance
 
 # `Item` definitions for supported types.
 from fancyflags._definitions import Boolean

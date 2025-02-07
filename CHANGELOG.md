@@ -6,6 +6,7 @@ All significant changes to this project will be documented here.
 
 *   Made `_auto_from_value` public as `ff.auto_from_value`.
 *   Dropped Python 3.8 support.
+*   Added `ff.DEFINE_from_instance`.
 
 ## [1.2]
 

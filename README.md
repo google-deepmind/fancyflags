@@ -1,6 +1,6 @@
 # fancyflags
 
-<!--* freshness: { owner: 'ydoron' reviewed: '2025-02-06' } *-->
+<!--* freshness: { owner: 'ydoron' reviewed: '2025-02-07' } *-->
 
 ![PyPI Python version](https://img.shields.io/pypi/pyversions/fancyflags)
 ![PyPI version](https://badge.fury.io/py/fancyflags.svg)
@@ -171,9 +171,20 @@ _NESTED_REPLAY_FLAG = ff.DEFINE_dict(
 
 ## "Auto" flags for functions and other structures {#auto}
 
-`fancyflags` also provides `ff.DEFINE_auto` which automatically generates a flag
-declaration corresponding to the signature of a given callable. The return value
-will also carry the correct type information.
+`fancyflags` provides several "auto" functions for generating flags
+corresponding to callables, dataclasses and mappings. In these functions, the
+type information and default values are inferred from a provided callable or
+example structure.
+
+This is more concise than spelling out individual items like `ff.Float(...)`,
+and provides stronger static analysis support via typed containers such as
+dataclasses.
+
+### `DEFINE_auto`
+
+`ff.DEFINE_auto` automatically generates a flag
+declaration corresponding to the _signature_ of a given callable. The return
+value will also carry the correct type information.
 
 For example the callable could be a constructor
 
@@ -205,6 +216,43 @@ possible to override keyword arguments in the call to `.value()`, e.g.
 
 ```python
 test_settings = _DATA_SETTINGS.value(split='test')
+```
+
+### `DEFINE_from_instance`
+
+`ff.DEFINE_from_instance` automatically generates a flag declaration
+corresponding to the _value_ of a given instance of a dataclass or mapping. As
+with `ff.DEFINE_auto`, the return value will also carry the correct type
+information.
+
+`ff.DEFINE_from_instance` supports nested structures, as in the example below,
+and is useful for defining flags which contain different values, without needing
+to rewrite or subclass library code:
+
+```python
+@dataclasses.dataclass
+class DataSettings:
+  dataset_name: str = 'mnist'
+  split: str = 'train'
+  batch_size: int = 128
+
+@dataclasses.dataclass
+class ExperimentSettings:
+  data: DataSettings
+  ...
+
+# In main script.
+# Exposes flags: --config.data.dataset_name, etc
+_SETTINGS = ff.DEFINE_from_instance(
+    # It's easy to choose a different value for the provided instance.
+    'config', ExperimentSettings(data=DataSettings(batch_size=64))
+)
+```
+
+Materialising a value works the same as for `ff.DEFINE_auto`:
+
+```python
+settings = _SETTINGS.value()
 ```
 
 ## Defining a dict flag from a function or constructor.
