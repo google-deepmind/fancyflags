@@ -101,11 +101,11 @@ def DEFINE_auto(  # pylint: disable=invalid-name
   )
 
 
-class IsDataclass(Protocol):
+class _IsDataclass(Protocol):
   __dataclass_fields__: Dict[str, dataclasses.Field[Any]]
 
 
-_D = TypeVar("_D", bound=Union[IsDataclass, Mapping[str, Any]])
+_D = TypeVar("_D", bound=Union[_IsDataclass, Mapping[str, Any]])
 
 
 def _should_recurse_from_value(value: Any) -> bool:
