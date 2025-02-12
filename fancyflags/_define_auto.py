@@ -130,7 +130,7 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     help_string: Optional help string for this flag.
     flag_values: An optional `flags.FlagValues` instance.
     should_recurse: An optional custom function that takes a value and returns
-      whether it should be recursively defined as a flag. By defult this will
+      whether it should be recursively defined as a flag. By default this will
       recurse on dataclasses and mappings.
 
   Returns:
