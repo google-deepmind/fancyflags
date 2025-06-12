@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import abc
 import collections.abc
+import dataclasses
 import enum
 import re
 import sys
 from typing import List, Optional, Sequence, Tuple
+import unittest
 
 from absl import flags
 from absl.testing import absltest
@@ -334,6 +336,25 @@ class AutoTest(absltest.TestCase):
 
     items = ff.auto(my_function, skip_params={'b'})
     self.assertSetEqual(set(items.keys()), {'a'})
+
+  @unittest.skipIf(
+      sys.version_info < (3, 11),
+      'InitVar support requires Python >= 3.11 due to'
+      ' https://github.com/python/cpython/issues/88962',
+  )
+  def test_dataclass_init_var(self):
+    @dataclasses.dataclass
+    class WithInitVar:
+      x: float = 0.0
+      int_init_var: dataclasses.InitVar[int] = 0
+      str_init_var: dataclasses.InitVar[str] = 'foo'
+      tuple_init_var: dataclasses.InitVar[Tuple[int]] = (1,)  # pylint: disable=g-one-element-tuple
+
+    items = ff.auto(WithInitVar)
+    self.assertSetEqual(
+        set(items.keys()),
+        {'x', 'int_init_var', 'str_init_var', 'tuple_init_var'},
+    )
 
 
 if __name__ == '__main__':

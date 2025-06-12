@@ -139,7 +139,11 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
   recursed = {}
 
   if dataclasses.is_dataclass(value):
-    names_to_types = typing.get_type_hints(type(value))
+    names_to_types = {
+        k: v
+        for k, v in typing.get_type_hints(type(value).__init__).items()
+        if k != "return"
+    }
     names_to_values = {k: getattr(value, k) for k in names_to_types}
   elif isinstance(value, Mapping):
     names_to_values = value

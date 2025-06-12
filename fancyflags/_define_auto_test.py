@@ -14,7 +14,9 @@
 # ============================================================================
 import copy
 import dataclasses
+import sys
 from typing import Any, Callable, Mapping, Sequence
+import unittest
 
 from absl import flags
 from absl.testing import absltest
@@ -45,6 +47,20 @@ class HasUnsupportedField:
 class NestedWithDict:
   point: Point = dataclasses.field(default_factory=Point)
   mapping: Mapping[str, Any] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class WithInitFalseAndInitValue:
+  x: float = 0.0
+  y: float = 0.0
+  # This tests that we do not skip defining flags for an InitVar.
+  init_var: dataclasses.InitVar[int] = 0
+  init_var_holder: int = dataclasses.field(init=False, repr=False, default=0)
+  # This tests that we correctly skip defining flags for fields with init=False.
+  ignored: bool = dataclasses.field(init=False, repr=False, default=False)
+
+  def __post_init__(self, init_var: int):
+    self.init_var_holder = init_var
 
 
 def greet(greeting: str = 'Hello', targets: Sequence[str] = ('world',)) -> str:
@@ -222,6 +238,26 @@ class DefineAutoTest(absltest.TestCase):
     )
     self.assertNotIn('greet.targets', flag_values)
 
+  @unittest.skipIf(
+      sys.version_info < (3, 11),
+      'InitVar support requires Python >= 3.11 due to'
+      ' https://github.com/python/cpython/issues/88962',
+  )
+  def test_dataclass_with_init_false(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_auto(
+        'with_init_false', WithInitFalseAndInitValue, flag_values=flag_values
+    )
+    flag_values((
+        './program',
+        '--with_init_false.x=2.0',
+        '--with_init_false.y=-1.5',
+        '--with_init_false.init_var=10',
+    ))
+    expected = WithInitFalseAndInitValue(x=2.0, y=-1.5, init_var=10)
+    self.assertEqual(expected.init_var_holder, 10)
+    self.assertEqual(expected, flag_holder.value())
+
 
 class DefineAutoFromValueTest(absltest.TestCase):
 
@@ -274,6 +310,27 @@ class DefineAutoFromValueTest(absltest.TestCase):
     expected = NestedWithDict(
         point=Point(y=1.0), mapping=dict(p=Point(x=1.0, y=2.0), z='zz')
     )
+    self.assertEqual(expected, flag_holder.value())
+
+  @unittest.skipIf(
+      sys.version_info < (3, 11),
+      'InitVar support requires Python >= 3.11 due to'
+      ' https://github.com/python/cpython/issues/88962',
+  )
+  def test_dataclass_with_init_false(self):
+    flag_values = flags.FlagValues()
+    defaults = WithInitFalseAndInitValue(x=1.0, y=2.0)
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'with_init_false', defaults, flag_values=flag_values
+    )
+    flag_values((
+        './program',
+        '--with_init_false.x=2.0',
+        '--with_init_false.y=-1.5',
+        '--with_init_false.init_var=10',
+    ))
+    expected = WithInitFalseAndInitValue(x=2.0, y=-1.5, init_var=10)
+    self.assertEqual(expected.init_var_holder, 10)
     self.assertEqual(expected, flag_holder.value())
 
 

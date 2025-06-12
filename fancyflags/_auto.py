@@ -15,6 +15,7 @@
 """Automatically builds flags from a callable signature."""
 
 import collections.abc
+import dataclasses
 import datetime
 import enum
 import functools
@@ -64,6 +65,10 @@ def _is_sequence(type_: Type[Any]) -> bool:
   )
 
 
+def _is_init_var(type_: Type[Any]) -> bool:
+  return isinstance(type_, dataclasses.InitVar) or type_ is dataclasses.InitVar
+
+
 def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
   """Returns the signature of a callable with type annotations resolved.
 
@@ -100,6 +105,9 @@ def auto_from_value(
     field_value: Union[_T, Literal[inspect.Parameter.empty]],
 ) -> Optional[_definitions.Item]:
   """Creates an `Item` for a single value."""
+
+  if _is_init_var(field_type):
+    return auto_from_value(field_name, field_type.type, field_value)
 
   # Resolve Optional[T] and T | None to T
   if typing.get_origin(field_type) in _UNION_TYPES:
