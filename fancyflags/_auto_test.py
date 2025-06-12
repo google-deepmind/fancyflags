@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Tests for fancyflags.auto."""
 
 # Test that `auto` can still correctly infer parameter types when postponed
 # evaluation of type annotations (PEP 563) is enabled.
@@ -48,7 +47,7 @@ class AutoTest(absltest.TestCase):
         float_: float = 1.0,
         bool_: bool = False,
         list_int: List[int] = [1, 2, 3],
-        tuple_str: Tuple[str] = ('foo',),
+        tuple_str: Tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
         variadic_tuple_str: Tuple[str, ...] = ('foo', 'bar'),
         sequence_bool: Sequence[bool] = [True, False],
         optional_int: Optional[int] = None,
@@ -90,7 +89,7 @@ class AutoTest(absltest.TestCase):
 
     def my_function(
         list_int: list[int] = [1, 2, 3],
-        tuple_str: tuple[str] = ('foo',),
+        tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
         variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
         optional_list_int: Optional[list[int]] = None,
         sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
@@ -149,7 +148,7 @@ class AutoTest(absltest.TestCase):
           float_: float = 1.0,
           bool_: bool = False,
           list_int: List[int] = [1, 2, 3],
-          tuple_str: Tuple[str] = ('foo',),
+          tuple_str: Tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
           variadic_tuple_str: Tuple[str, ...] = ('foo', 'bar'),
           sequence_bool: Sequence[bool] = [True, False],
           optional_int: Optional[int] = None,
@@ -194,7 +193,7 @@ class AutoTest(absltest.TestCase):
       def __init__(
           self,
           list_int: list[int] = [1, 2, 3],
-          tuple_str: tuple[str] = ('foo',),
+          tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
           variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
           optional_list_int: Optional[list[int]] = None,
           sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
