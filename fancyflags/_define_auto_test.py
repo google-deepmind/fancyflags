@@ -140,7 +140,8 @@ class DefineAutoTest(absltest.TestCase):
     flag_values = flags.FlagValues()
     _define_auto.DEFINE_auto('point', Point, flag_values=flag_values)
     with self.assertRaisesRegex(
-        flags.IllegalFlagValueError, "Can't override an auto flag directly"
+        flags.IllegalFlagValueError,
+        "Can't override auto flag `--point` directly",
     ):
       flag_values(('./program', '--point=2.0'))
 

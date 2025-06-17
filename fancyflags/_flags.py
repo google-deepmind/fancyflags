@@ -79,7 +79,7 @@ class ItemFlag(flags.Flag[_T]):
       parser: flags.ArgumentParser[_T],
       serializer: Optional[flags.ArgumentSerializer[_T]],
       *args,
-      **kwargs
+      **kwargs,
   ):
     self._shared_dict = shared_dict
     self._namespace = namespace
@@ -90,7 +90,7 @@ class ItemFlag(flags.Flag[_T]):
         # absl treats boolean flags as a special case in order to support the
         # alternative `--foo`/`--nofoo` syntax.
         boolean=isinstance(parser, flags.BooleanParser),
-        **kwargs
+        **kwargs,
     )
 
   @property
@@ -128,7 +128,7 @@ class MultiItemFlag(flags.MultiFlag[_T]):
       parser: flags.ArgumentParser[Sequence[_T]],
       serializer: Optional[flags.ArgumentSerializer[Sequence[_T]]],
       *args,
-      **kwargs
+      **kwargs,
   ):
     self._shared_dict = shared_dict
     self._namespace = namespace
@@ -196,8 +196,8 @@ class AutoFlag(flags.Flag[_CallableT]):
         f"  --{self.name}.{k}" for k in self._fn_kwargs.keys()
     )
     raise flags.IllegalFlagValueError(
-        "Can't override an auto flag directly. Did you mean to override one of "
-        f"\n{possible_overrides}"
+        f"Can't override auto flag `--{self.name}` directly. Did you mean to"
+        f" override one of \n{possible_overrides}"
     )
 
   def serialize(self):
@@ -269,8 +269,8 @@ class HierarchicalAutoFlag(flags.Flag):
     if value is None or value == _EMPTY:
       return None
     raise flags.IllegalFlagValueError(
-        "Can't override an auto flag directly. Did you mean to override one of "
-        "its `Item`s instead?"
+        f"Can't override auto flag `--{self.name}` directly. Did you mean to"
+        " override one of its `Item`s instead?"
     )
 
   def serialize(self) -> str:
