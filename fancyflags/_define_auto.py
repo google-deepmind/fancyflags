@@ -16,7 +16,7 @@
 
 import dataclasses
 import typing
-from typing import Any, Callable, Collection, Dict, Mapping, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Protocol, Type, TypeVar, Union
 import warnings
 
 from absl import flags
@@ -108,6 +108,30 @@ class _IsDataclass(Protocol):
 _D = TypeVar("_D", bound=Union[_IsDataclass, Mapping[str, Any]])
 
 
+def _maybe_narrow_union_type(
+    field_type: Type[Any], field_value: Any
+) -> Type[Any]:
+  """Attempt to narrow to type given by the field value."""
+  if not _auto.is_union(field_type):
+    return field_type
+
+  if field_value is None:
+    # We don't want to narrow optional types where the value is None, because
+    # later we won't know the original type.
+
+    # If None is not part of the union, this shouldn't happen at all, but
+    # returning the original type is reasonable behaviour and equivalent to the
+    # last branch below.
+    return field_type
+  elif type(field_value) in typing.get_args(field_type):
+    # Here we can narrow to the type present in the union.
+    return type(field_value)
+  else:
+    # Here the type is not present in the union. We return the original type and
+    # leave decisions on how to handle the union to another layer.
+    return field_type
+
+
 def _should_recurse_from_value(value: Any) -> bool:
   return dataclasses.is_dataclass(value) or isinstance(value, Mapping)
 
@@ -168,6 +192,7 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     if field_name in recursed:
       continue
     field_value = names_to_values[field_name]
+    field_type = _maybe_narrow_union_type(field_type, field_value)
     try:
       # pylint:disable-next=protected-access
       item = _auto.auto_from_value(field_name, field_type, field_value)

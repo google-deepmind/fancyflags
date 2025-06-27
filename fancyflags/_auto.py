@@ -65,6 +65,10 @@ def _is_sequence(type_: Type[Any]) -> bool:
   )
 
 
+def is_union(type_: Type[Any]) -> bool:
+  return typing.get_origin(type_) in _UNION_TYPES
+
+
 def _is_init_var(type_: Type[Any]) -> bool:
   return isinstance(type_, dataclasses.InitVar) or type_ is dataclasses.InitVar
 
@@ -110,7 +114,7 @@ def auto_from_value(
     return auto_from_value(field_name, field_type.type, field_value)
 
   # Resolve Optional[T] and T | None to T
-  if typing.get_origin(field_type) in _UNION_TYPES:
+  if is_union(field_type):
     union_args = set(typing.get_args(field_type)) - {type(None)}
     if len(union_args) > 1:
       raise TypeError(

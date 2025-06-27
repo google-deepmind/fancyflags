@@ -15,11 +15,13 @@
 import copy
 import dataclasses
 import sys
-from typing import Any, Callable, Mapping, Sequence
+import typing
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 import unittest
 
 from absl import flags
 from absl.testing import absltest
+from absl.testing import parameterized
 from fancyflags import _define_auto
 from fancyflags import _flags
 
@@ -105,7 +107,7 @@ class DefineAutoTest(absltest.TestCase):
     # Passing the required flag should work as normal.
     flag_values(('./program', '--thing.foo=hello'))
     expected = MySettings('hello', 3)
-    self.assertEqual(expected, flag_holder.value())
+    self.assertEqual(expected, flag_holder.value())  # pylint: disable=no-value-for-parameter
 
   def test_function(self):
     flag_values = flags.FlagValues()
@@ -227,7 +229,7 @@ class DefineAutoTest(absltest.TestCase):
     # Calling the function without arguments should error.
     flag_values(('./program', ''))
     with self.assertRaises(TypeError):
-      flag_holder.value()  # pytype: disable=missing-parameter
+      flag_holder.value()  # pylint: disable=no-value-for-parameter  # pytype: disable=missing-parameter
 
     # Calling with arguments should work fine.
     self.assertEqual(flag_holder.value(a=2), 3)  # pytype: disable=wrong-arg-types
@@ -333,6 +335,84 @@ class DefineAutoFromValueTest(absltest.TestCase):
     expected = WithInitFalseAndInitValue(x=2.0, y=-1.5, init_var=10)
     self.assertEqual(expected.init_var_holder, 10)
     self.assertEqual(expected, flag_holder.value())
+
+
+@dataclasses.dataclass
+class WithLegacyUnion:
+  field: Union[int, str]
+
+
+@dataclasses.dataclass
+class WithNewUnion:
+  field: int | str
+
+
+@dataclasses.dataclass
+class WithLegacyOptional:
+  field: Optional[int]
+
+
+@dataclasses.dataclass
+class WithNewOptional:
+  field: int | None
+
+
+@dataclasses.dataclass
+class WithMultipleUnion:
+  field: int | str | None
+
+
+class NarrowUnionTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      ('legacy_union_int', WithLegacyUnion(field=4), int),
+      ('legacy_union_str', WithLegacyUnion(field='string'), str),
+      ('new_union_int', WithNewUnion(field=3), int),
+      # Tests last branch where we can't narrow the type.
+      ('new_union_float', WithNewUnion(field=3.0), int | str),  # pytype: disable=wrong-arg-types
+      # Optional types should not get narrowed when we supply None.
+      (
+          'legacy_optional_none',
+          WithLegacyOptional(field=None),
+          typing.Optional[int],
+      ),
+      ('new_optional_none', WithNewOptional(field=None), int | None),
+      # Optional types should get narrowed when we supply non-None value.
+      ('legacy_optional_int', WithLegacyOptional(field=7), int),
+      ('new_optional_int', WithNewOptional(field=9), int),
+      # Union with multiple types.
+      ('multiple_union_int', WithMultipleUnion(field=4), int),
+      # Union where we can't narrow the type.
+      ('multiple_union_str', WithMultipleUnion(field=None), int | str | None),
+  )
+  def test_narrowing(self, instance, expected_type):
+    names_to_types = typing.get_type_hints(type(instance))
+    resolved_type = _define_auto._maybe_narrow_union_type(
+        names_to_types['field'], instance.field
+    )
+    self.assertEqual(expected_type, resolved_type)
+
+  def test_end_to_end(self):
+    flag_values = flags.FlagValues()
+    _define_auto.DEFINE_from_instance(
+        'config',
+        WithMultipleUnion(field='string'),
+        flag_values=flag_values,
+    )
+    flag_values(('./program', '--config.field=4'))
+    # This should get parsed as a string.
+    self.assertEqual(flag_values['config'].value().field, '4')
+
+  def test_end_to_end_unable_to_narrow(self):
+    flag_values = flags.FlagValues()
+    _define_auto.DEFINE_from_instance(
+        'config',
+        WithMultipleUnion(field=None),
+        flag_values=flag_values,
+    )
+    # This should fail to generate a flag.
+    with self.assertRaisesRegex(flags.UnrecognizedFlagError, 'config.field'):
+      flag_values(('./program', '--config.field=4'))
 
 
 if __name__ == '__main__':
