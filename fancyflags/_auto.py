@@ -22,7 +22,7 @@ import functools
 import inspect
 import types
 import typing
-from typing import Any, Callable, Collection, Iterable, Literal, Mapping, MutableMapping, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Collection, Iterable, Literal, Mapping, MutableMapping, Type, TypeVar, Union
 import warnings
 
 from fancyflags import _definitions
@@ -39,14 +39,7 @@ _ITEM_BY_TYPE = {
     str: _definitions.String,
 }
 
-try:
-  # The origin type of `Union[x,y]` is `typing.Union`, But using PEP604 syntax
-  # the origin type of `x | y` is `types.UnionType`. Accept either when defined.
-  _UNION_TYPES = frozenset({Union, types.UnionType})
-except AttributeError:
-  _UNION_TYPES = frozenset({Union})
-
-
+_UNION_TYPES = frozenset({Union, types.UnionType})
 _MISSING_TYPE_ANNOTATION = "Missing type annotation for argument {name!r}"
 _UNSUPPORTED_ARGUMENT_TYPE = (
     "No matching flag type for argument {name!r} with type annotation: "
@@ -107,13 +100,13 @@ def auto_from_value(
     field_name: str,
     field_type: Type[_T],
     field_value: Union[_T, Literal[inspect.Parameter.empty]],
-) -> Optional[_definitions.Item]:
+) -> _definitions.Item | None:
   """Creates an `Item` for a single value."""
 
   if _is_init_var(field_type):
     return auto_from_value(field_name, field_type.type, field_value)
 
-  # Resolve Optional[T] and T | None to T
+  # Resolve T | None, and Optional[T], to T
   if is_union(field_type):
     union_args = set(typing.get_args(field_type)) - {type(None)}
     if len(union_args) > 1:

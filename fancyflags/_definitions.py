@@ -16,7 +16,7 @@
 
 import collections
 import enum
-from typing import Any, Generic, Iterable, Mapping, MutableMapping, Optional, Sequence as Sequence_, Type, TypeVar, Union
+from typing import Any, Generic, Iterable, Mapping, MutableMapping, Sequence as Sequence_, Type, TypeVar
 
 from absl import flags
 from fancyflags import _argument_parsers
@@ -214,10 +214,10 @@ class Item(Generic[_T]):
 
   def __init__(
       self,
-      default: Optional[_T],
+      default: _T | None,
       help_string: str,
       parser: flags.ArgumentParser,
-      serializer: Optional[flags.ArgumentSerializer] = None,
+      serializer: flags.ArgumentSerializer | None = None,
       *,
       required: bool = False,
   ):
@@ -303,8 +303,8 @@ class Boolean(Item[bool]):
 
   def __init__(
       self,
-      default: Optional[bool],
-      help_string: Optional[str] = None,
+      default: bool | None,
+      help_string: str | None = None,
       *,
       required: bool = False,
   ):
@@ -325,9 +325,9 @@ class Enum(Item[str]):
 
   def __init__(
       self,
-      default: Optional[str],
+      default: str | None,
       enum_values: Iterable[str],
-      help_string: Optional[str] = None,
+      help_string: str | None = None,
       *,
       case_sensitive: bool = True,
       required: bool = False,
@@ -341,9 +341,9 @@ class EnumClass(Item[_EnumT]):
 
   def __init__(
       self,
-      default: Optional[_EnumT],
+      default: _EnumT | None,
       enum_class: Type[_EnumT],
-      help_string: Optional[str] = None,
+      help_string: str | None = None,
       *,
       case_sensitive: bool = False,
       required: bool = False,
@@ -363,8 +363,8 @@ class Float(Item[float]):
 
   def __init__(
       self,
-      default: Optional[float],
-      help_string: Optional[str] = None,
+      default: float | None,
+      help_string: str | None = None,
       *,
       required: bool = False,
   ):
@@ -378,8 +378,8 @@ class Integer(Item[int]):
 
   def __init__(
       self,
-      default: Optional[int],
-      help_string: Optional[str] = None,
+      default: int | None,
+      help_string: str | None = None,
       required: bool = False,
   ):
     super().__init__(
@@ -407,8 +407,8 @@ class Sequence(Item, Generic[_T]):
 
   def __init__(
       self,
-      default: Optional[Iterable[_T]],
-      help_string: Optional[str] = None,
+      default: Iterable[_T] | None,
+      help_string: str | None = None,
       required: bool = False,
   ):
     super().__init__(
@@ -424,8 +424,8 @@ class String(Item[str]):
 
   def __init__(
       self,
-      default: Optional[str],
-      help_string: Optional[str] = None,
+      default: str | None,
+      help_string: str | None = None,
       *,
       required: bool = False,
   ):
@@ -441,8 +441,8 @@ class DateTime(Item):
 
   def __init__(
       self,
-      default: Optional[str],
-      help_string: Optional[str] = None,
+      default: str | None,
+      help_string: str | None = None,
       *,
       required: bool = False,
   ):
@@ -458,8 +458,8 @@ class TimeDelta(Item):
 
   def __init__(
       self,
-      default: Optional[str],
-      help_string: Optional[str] = None,
+      default: str | None,
+      help_string: str | None = None,
       *,
       required: bool = False,
   ):
@@ -479,8 +479,8 @@ class StringList(Item[Iterable[str]]):
 
   def __init__(
       self,
-      default: Optional[Iterable[str]],
-      help_string: Optional[str] = None,
+      default: Iterable[str] | None,
+      help_string: str | None = None,
   ):
     serializer = flags.CsvListSerializer(",")
     super().__init__(default, help_string, flags.ListParser(), serializer)
@@ -497,10 +497,10 @@ class MultiItem(Generic[_T]):
 
   def __init__(
       self,
-      default: Union[None, _T, Iterable[_T]],
+      default: None | _T | Iterable[_T],
       help_string: str,
       parser: flags.ArgumentParser[Sequence_[_T]],
-      serializer: Optional[flags.ArgumentSerializer[Sequence_[_T]]] = None,
+      serializer: flags.ArgumentSerializer[Sequence_[_T]] | None = None,
   ):
     if default is None:
       self.default = default
@@ -553,9 +553,9 @@ class MultiEnum(Item[_T]):
 
   def __init__(
       self,
-      default: Union[None, _T, Iterable[_T]],
+      default: None | _T | Iterable[_T],
       enum_values: Iterable[_T],
-      help_string: Optional[str] = None,
+      help_string: str | None = None,
   ):
     parser = _argument_parsers.MultiEnumParser(enum_values)
     serializer = flags.ArgumentSerializer()
@@ -568,9 +568,9 @@ class MultiEnumClass(MultiItem):
 
   def __init__(
       self,
-      default: Union[None, _EnumT, Iterable[_EnumT]],
+      default: None | _EnumT | Iterable[_EnumT],
       enum_class: Type[_EnumT],
-      help_string: Optional[str] = None,
+      help_string: str | None = None,
   ):
     parser = flags.EnumClassParser(enum_class)
     serializer = flags.EnumClassListSerializer(",", lowercase=False)
@@ -591,7 +591,7 @@ class MultiString(MultiItem):
 
 def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
     name: str,
-    default: Optional[Iterable[_T]],
+    default: Iterable[_T] | None,
     enum_values: Iterable[_T],
     help: str,
     flag_values: flags.FlagValues = flags.FLAGS,
@@ -613,7 +613,7 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
 
 def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
     name: str,
-    default: Optional[Iterable[_T]],
+    default: Iterable[_T] | None,
     help: str,
     flag_values: flags.FlagValues = flags.FLAGS,
     **args,

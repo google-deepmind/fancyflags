@@ -16,7 +16,7 @@
 
 import copy
 import functools
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence, TypeVar
 
 from absl import flags
 
@@ -77,7 +77,7 @@ class ItemFlag(flags.Flag[_T]):
       shared_dict: MutableMapping[str, Any],
       namespace: Sequence[str],
       parser: flags.ArgumentParser[_T],
-      serializer: Optional[flags.ArgumentSerializer[_T]],
+      serializer: flags.ArgumentSerializer[_T] | None,
       *args,
       **kwargs,
   ):
@@ -94,15 +94,15 @@ class ItemFlag(flags.Flag[_T]):
     )
 
   @property
-  def value(self) -> Optional[_T]:
+  def value(self) -> _T | None:
     return self._value
 
   @value.setter
-  def value(self, value: Optional[_T]):
+  def value(self, value: _T | None):
     self._value = value
     self._update_shared_dict()
 
-  def parse(self, argument: Union[Optional[_T], str]):
+  def parse(self, argument: _T | str | None):
     super().parse(argument)
     self._update_shared_dict()
 
@@ -126,7 +126,7 @@ class MultiItemFlag(flags.MultiFlag[_T]):
       shared_dict: MutableMapping[str, Any],
       namespace: Sequence[str],
       parser: flags.ArgumentParser[Sequence[_T]],
-      serializer: Optional[flags.ArgumentSerializer[Sequence[_T]]],
+      serializer: flags.ArgumentSerializer[Sequence[_T]] | None,
       *args,
       **kwargs,
   ):
@@ -135,15 +135,15 @@ class MultiItemFlag(flags.MultiFlag[_T]):
     super().__init__(parser, serializer, *args, **kwargs)
 
   @property
-  def value(self) -> Optional[Sequence[_T]]:
+  def value(self) -> Sequence[_T] | None:
     return self._value
 
   @value.setter
-  def value(self, value: Optional[Sequence[_T]]):
+  def value(self, value: Sequence[_T] | None):
     self._value = value
     self._update_shared_dict()
 
-  def parse(self, arguments: Union[str, _T, Iterable[_T]]):
+  def parse(self, arguments: str | _T | Iterable[_T]):
     super().parse(arguments)
     self._update_shared_dict()
 
