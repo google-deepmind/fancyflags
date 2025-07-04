@@ -4,6 +4,7 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Move from `setup.py` and `requirements.txt` to `pyproject.toml`.
 *   Added Python 3.12 and 3.13 support.
 *   Dropped Python 3.9 support.
 *   Made `_auto_from_value` public as `ff.auto_from_value`.
