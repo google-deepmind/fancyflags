@@ -4,6 +4,10 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+## [1.3]
+
+Release date: 2025-07-04
+
 *   Move from `setup.py` and `requirements.txt` to `pyproject.toml`.
 *   Added Python 3.12 and 3.13 support.
 *   Dropped Python 3.9 support.
@@ -45,7 +49,8 @@ Release date: 2021-02-08
 
 *   Initial release.
 
-[Unreleased]: https://github.com/deepmind/fancyflags/compare/v1.2...HEAD
+[Unreleased]: https://github.com/deepmind/fancyflags/compare/v1.3...HEAD
+[1.3]: https://github.com/deepmind/fancyflags/compare/v1.2...v1.3
 [1.2]: https://github.com/deepmind/fancyflags/compare/v1.1...v1.2
 [1.1]: https://github.com/deepmind/fancyflags/compare/v1.0...v1.1
 [1.0]: https://github.com/deepmind/fancyflags/releases/tag/v1.0
