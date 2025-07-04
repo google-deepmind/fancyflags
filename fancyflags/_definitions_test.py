@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Tests for definitions."""
-
+from collections.abc import Callable
 import copy
 import datetime
 import enum
-from typing import Any, Callable
+from typing import Any
 
 from absl import flags
 from absl.testing import absltest

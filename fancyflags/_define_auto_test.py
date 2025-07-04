@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
+from collections.abc import Callable, Mapping, Sequence
 import copy
 import dataclasses
 import sys
 import typing
-from typing import Any, Callable, Mapping, Optional, Sequence, Union
+from typing import Any, Optional, Union
 import unittest
 
 from absl import flags

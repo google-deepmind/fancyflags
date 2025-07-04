@@ -15,8 +15,9 @@
 """Functionality for defining `Item`s and dict flags."""
 
 import collections
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence as Sequence_
 import enum
-from typing import Any, Generic, Iterable, Mapping, MutableMapping, Sequence as Sequence_, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from absl import flags
 from fancyflags import _argument_parsers
@@ -342,7 +343,7 @@ class EnumClass(Item[_EnumT]):
   def __init__(
       self,
       default: _EnumT | None,
-      enum_class: Type[_EnumT],
+      enum_class: type[_EnumT],
       help_string: str | None = None,
       *,
       case_sensitive: bool = False,
@@ -569,7 +570,7 @@ class MultiEnumClass(MultiItem):
   def __init__(
       self,
       default: None | _EnumT | Iterable[_EnumT],
-      enum_class: Type[_EnumT],
+      enum_class: type[_EnumT],
       help_string: str | None = None,
   ):
     parser = flags.EnumClassParser(enum_class)
@@ -589,11 +590,11 @@ class MultiString(MultiItem):
 # Misc DEFINE_*s.
 
 
-def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
+def DEFINE_multi_enum(  # pylint: disable=invalid-name
     name: str,
     default: Iterable[_T] | None,
     enum_values: Iterable[_T],
-    help: str,
+    help: str,  # pylint: disable=redefined-builtin
     flag_values: flags.FlagValues = flags.FLAGS,
     **args,
 ) -> flags.FlagHolder[_T]:
@@ -611,10 +612,10 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name,redefined-builtin
   )
 
 
-def DEFINE_sequence(  # pylint: disable=invalid-name,redefined-builtin
+def DEFINE_sequence(  # pylint: disable=invalid-name
     name: str,
     default: Iterable[_T] | None,
-    help: str,
+    help: str,  # pylint: disable=redefined-builtin
     flag_values: flags.FlagValues = flags.FLAGS,
     **args,
 ) -> flags.FlagHolder[Iterable[_T]]:

@@ -14,9 +14,10 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables and example structures."""
 
+from collections.abc import Callable, Collection, Mapping
 import dataclasses
 import typing
-from typing import Any, Callable, Collection, Dict, Mapping, Optional, Protocol, Type, TypeVar, Union
+from typing import Any, Protocol, TypeVar
 import warnings
 
 from absl import flags
@@ -24,7 +25,15 @@ from fancyflags import _auto
 from fancyflags import _definitions
 from fancyflags import _flags
 
-_F = TypeVar("_F", bound=Callable)
+
+class _NamedCallable(Protocol):
+  __name__: str
+
+  def __call__(self, *args, **kwargs):
+    ...
+
+
+_F = TypeVar("_F", bound=_NamedCallable)
 
 # Add current module to disclaimed module ids.
 flags.disclaim_key_flags()
@@ -33,7 +42,7 @@ flags.disclaim_key_flags()
 def DEFINE_auto(  # pylint: disable=invalid-name
     name: str,
     fn: _F,
-    help_string: Optional[str] = None,
+    help_string: str | None = None,
     flag_values: flags.FlagValues = flags.FLAGS,
     *,
     strict: bool = True,
@@ -102,15 +111,15 @@ def DEFINE_auto(  # pylint: disable=invalid-name
 
 
 class _IsDataclass(Protocol):
-  __dataclass_fields__: Dict[str, dataclasses.Field[Any]]
+  __dataclass_fields__: dict[str, dataclasses.Field[Any]]
 
 
-_D = TypeVar("_D", bound=Union[_IsDataclass, Mapping[str, Any]])
+_D = TypeVar("_D", bound=_IsDataclass | Mapping[str, Any])
 
 
 def _maybe_narrow_union_type(
-    field_type: Type[Any], field_value: Any
-) -> Type[Any]:
+    field_type: type[Any], field_value: Any
+) -> type[Any]:
   """Attempt to narrow to type given by the field value."""
   if not _auto.is_union(field_type):
     return field_type
@@ -139,7 +148,7 @@ def _should_recurse_from_value(value: Any) -> bool:
 def DEFINE_from_instance(  # pylint: disable=invalid-name
     name: str,
     value: _D,
-    help_string: Optional[str] = None,
+    help_string: str | None = None,
     flag_values: flags.FlagValues = flags.FLAGS,
     should_recurse: Callable[[Any], bool] = _should_recurse_from_value,
 ) -> flags.FlagHolder[Callable[..., _D]]:

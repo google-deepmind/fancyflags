@@ -18,12 +18,11 @@
 from __future__ import annotations
 
 import abc
-import collections.abc
+from collections.abc import Sequence
 import dataclasses
 import enum
 import re
 import sys
-from typing import List, Optional, Sequence, Tuple
 import unittest
 
 from absl import flags
@@ -48,13 +47,13 @@ class AutoTest(absltest.TestCase):
         int_: int = 10,
         float_: float = 1.0,
         bool_: bool = False,
-        list_int: List[int] = [1, 2, 3],
-        tuple_str: Tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
-        variadic_tuple_str: Tuple[str, ...] = ('foo', 'bar'),
+        list_int: list[int] = [1, 2, 3],
+        tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
+        variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
         sequence_bool: Sequence[bool] = [True, False],
-        optional_int: Optional[int] = None,
-        optional_float: Optional[float] = None,
-        optional_list_int: Optional[List[int]] = None,
+        optional_int: int | None = None,
+        optional_float: float | None = None,
+        optional_list_int: list[int] | None = None,
     ):  # pylint: disable=dangerous-default-value
       pass
 
@@ -93,8 +92,8 @@ class AutoTest(absltest.TestCase):
         list_int: list[int] = [1, 2, 3],
         tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
         variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
-        optional_list_int: Optional[list[int]] = None,
-        sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
+        optional_list_int: list[int] | None = None,
+        sequence_str: Sequence[str] = ('bar', 'baz'),
     ):  # pylint: disable=dangerous-default-value
       # Unused.
       del (
@@ -149,13 +148,13 @@ class AutoTest(absltest.TestCase):
           int_: int = 10,
           float_: float = 1.0,
           bool_: bool = False,
-          list_int: List[int] = [1, 2, 3],
-          tuple_str: Tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
-          variadic_tuple_str: Tuple[str, ...] = ('foo', 'bar'),
+          list_int: list[int] = [1, 2, 3],
+          tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
+          variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
           sequence_bool: Sequence[bool] = [True, False],
-          optional_int: Optional[int] = None,
-          optional_float: Optional[float] = None,
-          optional_list_int: Optional[List[int]] = None,
+          optional_int: int | None = None,
+          optional_float: float | None = None,
+          optional_list_int: list[int] | None = None,
       ):  # pylint: disable=dangerous-default-value
         pass
 
@@ -197,8 +196,8 @@ class AutoTest(absltest.TestCase):
           list_int: list[int] = [1, 2, 3],
           tuple_str: tuple[str] = ('foo',),  # pylint: disable=g-one-element-tuple
           variadic_tuple_str: tuple[str, ...] = ('foo', 'bar'),
-          optional_list_int: Optional[list[int]] = None,
-          sequence_str: collections.abc.Sequence[str] = ('bar', 'baz'),
+          optional_list_int: list[int] | None = None,
+          sequence_str: Sequence[str] = ('bar', 'baz'),
       ):  # pylint: disable=dangerous-default-value
         # Unused.
         del (
@@ -310,8 +309,8 @@ class AutoTest(absltest.TestCase):
   def test_supports_tuples_with_more_than_one_element(self):
 
     def my_function(
-        three_ints: Tuple[int, int, int] = (1, 2, 3),
-        zero_or_more_strings: Tuple[str, ...] = ('foo', 'bar'),
+        three_ints: tuple[int, int, int] = (1, 2, 3),
+        zero_or_more_strings: tuple[str, ...] = ('foo', 'bar'),
     ):
       del three_ints, zero_or_more_strings
 
@@ -348,7 +347,7 @@ class AutoTest(absltest.TestCase):
       x: float = 0.0
       int_init_var: dataclasses.InitVar[int] = 0
       str_init_var: dataclasses.InitVar[str] = 'foo'
-      tuple_init_var: dataclasses.InitVar[Tuple[int]] = (1,)  # pylint: disable=g-one-element-tuple
+      tuple_init_var: dataclasses.InitVar[tuple[int]] = (1,)  # pylint: disable=g-one-element-tuple
 
     items = ff.auto(WithInitVar)
     self.assertSetEqual(

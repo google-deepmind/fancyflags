@@ -14,9 +14,10 @@
 # ============================================================================
 """Flag classes for defining dict, Item, MultiItem and Auto flags."""
 
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 import copy
 import functools
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence, TypeVar
+from typing import Any, TypeVar
 
 from absl import flags
 

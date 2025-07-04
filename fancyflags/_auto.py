@@ -14,7 +14,7 @@
 # ============================================================================
 """Automatically builds flags from a callable signature."""
 
-import collections.abc
+from collections.abc import Callable, Collection, Iterable, Mapping, MutableMapping, Sequence
 import dataclasses
 import datetime
 import enum
@@ -22,7 +22,7 @@ import functools
 import inspect
 import types
 import typing
-from typing import Any, Callable, Collection, Iterable, Literal, Mapping, MutableMapping, Type, TypeVar, Union
+from typing import Any, Literal, TypeVar, Union
 import warnings
 
 from fancyflags import _definitions
@@ -49,20 +49,20 @@ _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
 _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
 
 
-def _is_sequence(type_: Type[Any]) -> bool:
+def _is_sequence(type_: type[Any]) -> bool:
   type_ = typing.get_origin(type_) or type_
   return (
       inspect.isclass(type_)
-      and issubclass(type_, collections.abc.Sequence)
+      and issubclass(type_, Sequence)
       and not issubclass(type_, (str, bytes, bytearray, memoryview))
   )
 
 
-def is_union(type_: Type[Any]) -> bool:
+def is_union(type_: type[Any]) -> bool:
   return typing.get_origin(type_) in _UNION_TYPES
 
 
-def _is_init_var(type_: Type[Any]) -> bool:
+def _is_init_var(type_: type[Any]) -> bool:
   return isinstance(type_, dataclasses.InitVar) or type_ is dataclasses.InitVar
 
 
@@ -98,12 +98,15 @@ def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
 
 def auto_from_value(
     field_name: str,
-    field_type: Type[_T],
+    field_type: type[_T],
     field_value: Union[_T, Literal[inspect.Parameter.empty]],
 ) -> _definitions.Item | None:
   """Creates an `Item` for a single value."""
 
   if _is_init_var(field_type):
+    assert hasattr(
+        field_type, "type"
+    ), f"InitVar named {field_name} lacks a type attribute: {field_type}"
     return auto_from_value(field_name, field_type.type, field_value)
 
   # Resolve T | None, and Optional[T], to T
