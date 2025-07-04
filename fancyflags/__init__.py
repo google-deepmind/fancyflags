@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""An extended flags library. The main component is a nested dict flag."""
+"""A Python library for defining structured command-line flags."""
 
 # pylint: disable=g-bad-import-order,g-import-not-at-top
 
