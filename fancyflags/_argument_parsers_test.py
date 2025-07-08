@@ -120,6 +120,34 @@ class SequenceParserTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, ".*as a python literal.*"):
       self.parser.parse(input_string)
 
+  def test_string_too_long(self):
+    # Test string length validation
+    long_string = "[" + "1," * 50000 + "1]"  # Very long string
+    with self.assertRaisesRegex(ValueError, "Input string too long"):
+      self.parser.parse(long_string)
+
+  def test_dangerous_patterns(self):
+    # Test dangerous pattern detection
+    with self.assertRaisesRegex(ValueError, "unsafe pattern"):
+      self.parser.parse("__import__('os').system('ls')")
+
+    with self.assertRaisesRegex(ValueError, "unsafe pattern"):
+      self.parser.parse("exec('print(1)')")
+
+  def test_excessive_nesting(self):
+    # Test depth validation
+    # Create deeply nested structure
+    nested = "[" * 15 + "1" + "]" * 15
+    with self.assertRaisesRegex(ValueError, "nesting too deep"):
+      self.parser.parse(nested)
+
+  def test_sequence_too_long(self):
+    # Test sequence length validation
+    # Create a very long sequence
+    large_seq = [1] * 15000
+    with self.assertRaisesRegex(ValueError, "Sequence too long"):
+      self.parser.parse(large_seq)
+
 
 class MultiEnumParserTest(parameterized.TestCase):
 
@@ -154,6 +182,11 @@ class MultiEnumParserTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(ValueError, "Argument values should be one of"):
       self.parser.parse(inputs)
+
+  def test_string_validation(self):
+    # Test dangerous pattern detection in MultiEnumParser
+    with self.assertRaisesRegex(ValueError, "unsafe pattern"):
+      self.parser.parse("__import__('sys')")
 
 
 class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
@@ -211,6 +244,28 @@ class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
       # Avoid confusion of 1970-01-01T08:00:00 vs. 1970-01-01T00:00:00-08:00
       parser.parse("1970-01-01-08:00")
 
+  def test_empty_string(self):
+    # Test empty string validation
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    with self.assertRaisesRegex(ValueError, "Empty datetime string"):
+      parser.parse("")
+
+    with self.assertRaisesRegex(ValueError, "Empty datetime string"):
+      parser.parse("   ")
+
+  def test_string_too_long(self):
+    # Test string length validation
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    long_string = "2023-01-01" + "x" * 100
+    with self.assertRaisesRegex(ValueError, "too long"):
+      parser.parse(long_string)
+
+  def test_wrong_type(self):
+    # Test type validation
+    parser = _argument_parsers.PossiblyNaiveDatetimeParser()
+    with self.assertRaisesRegex(TypeError, "Expected string or datetime"):
+      parser.parse(123)
+
 
 class PossiblyNaiveTimeDeltaFlagTest(parameterized.TestCase):
 
@@ -264,6 +319,34 @@ class PossiblyNaiveTimeDeltaFlagTest(parameterized.TestCase):
     else:
       with self.assertRaises(raises):
         parser.parse(value)
+
+  def test_empty_string(self):
+    # Test empty string validation
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+    with self.assertRaisesRegex(ValueError, "Empty timedelta string"):
+      parser.parse("")
+
+    with self.assertRaisesRegex(ValueError, "Empty timedelta string"):
+      parser.parse("   ")
+
+  def test_string_too_long(self):
+    # Test string length validation
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+    long_string = "1d" + "x" * 200
+    with self.assertRaisesRegex(ValueError, "too long"):
+      parser.parse(long_string)
+
+  def test_wrong_type(self):
+    # Test type validation
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+    with self.assertRaisesRegex(TypeError, "Expected string or timedelta"):
+      parser.parse(123)
+
+  def test_excessive_values(self):
+    # Test protection against extremely large timedelta values
+    parser = _argument_parsers.PossiblyNaiveTimeDeltaParser()
+    with self.assertRaisesRegex(ValueError, "too large"):
+      parser.parse("999999w")  # Too many weeks
 
 
 if __name__ == "__main__":

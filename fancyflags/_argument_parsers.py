@@ -39,6 +39,75 @@ _EMPTY_STRING_ERROR_MESSAGE = """
 Empty sequences should be given explicitly as [] or () and not as an empty
 string"""
 
+# Maximum depth for nested structures to prevent excessive recursion.
+_MAX_DEPTH = 10
+
+# Maximum number of elements in a sequence to prevent memory issues.
+_MAX_SEQUENCE_LENGTH = 10000
+
+# Maximum string length to prevent extremely large inputs.
+_MAX_STRING_LENGTH = 100000
+
+
+def _validate_string_input(argument):
+  """Validates string input before parsing.
+
+  Args:
+    argument: The string to validate.
+
+  Raises:
+    ValueError: If validation fails.
+  """
+  if len(argument) > _MAX_STRING_LENGTH:
+    raise ValueError(
+        "Input string too long ({} chars). Maximum allowed: {}".format(
+            len(argument), _MAX_STRING_LENGTH)
+    )
+
+  # Check for potentially dangerous patterns.
+  dangerous_patterns = [
+      "__import__",
+      "exec", 
+      "eval",
+      "open",
+      "file",
+      "input",
+      "raw_input"
+  ]
+
+  for pattern in dangerous_patterns:
+    if pattern in argument:
+      raise ValueError(
+          "Input contains potentially unsafe pattern: '{}'".format(pattern)
+      )
+
+
+def _validate_sequence_depth(obj, current_depth=0):
+  """Validates sequence nesting depth.
+
+  Args:
+    obj: The object to check.
+    current_depth: Current nesting depth.
+
+  Raises:
+    ValueError: If depth exceeds maximum.
+  """
+  if current_depth > _MAX_DEPTH:
+    raise ValueError(
+        "Sequence nesting too deep (depth > {}). "
+        "This could indicate malformed input.".format(_MAX_DEPTH)
+    )
+
+  if isinstance(obj, BASIC_SEQUENCE_TYPES):
+    if len(obj) > _MAX_SEQUENCE_LENGTH:
+      raise ValueError(
+          "Sequence too long ({} elements). Maximum allowed: {}".format(
+              len(obj), _MAX_SEQUENCE_LENGTH)
+      )
+
+    for item in obj:
+      _validate_sequence_depth(item, current_depth + 1)
+
 
 class SequenceParser(flags.ArgumentParser):
   """Parser of simple sequences containing simple Python values."""
@@ -58,20 +127,27 @@ class SequenceParser(flags.ArgumentParser):
     Raises:
       TypeError: If the input type is not supported, or if the input is not a
         flat sequence that only contains simple Python values.
-      ValueError: If the input is an empty string.
+      ValueError: If the input is an empty string or validation fails.
     """
     if argument is None:
       return []
     elif isinstance(argument, BASIC_SEQUENCE_TYPES):
       result = argument[:]
+      # Validate existing sequences too
+      _validate_sequence_depth(result)
     elif isinstance(argument, str):
       if not argument:
         raise ValueError(_EMPTY_STRING_ERROR_MESSAGE)
+
+      # Enhanced string validation
+      _validate_string_input(argument)
+
       try:
         result = ast.literal_eval(argument)
       except (ValueError, SyntaxError) as e:
         raise ValueError(
-            f'Failed to parse "{argument}" as a python literal.'
+            "Failed to parse \"{}\" as a python literal: {}".format(
+                argument, e)
         ) from e
 
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
@@ -79,6 +155,9 @@ class SequenceParser(flags.ArgumentParser):
             "Input string should represent a list or tuple, however it "
             "evaluated as a {}.".format(type(result).__name__)
         )
+
+      # Validate the parsed result
+      _validate_sequence_depth(result)
     else:
       raise TypeError("Unsupported type {}.".format(type(argument).__name__))
 
@@ -121,22 +200,35 @@ class MultiEnumParser(flags.ArgumentParser):
 
     Raises:
       TypeError: If the input type is not supported.
-      ValueError: Raised if an argument element didn't match anything in enum.
+      ValueError: Raised if an argument element didn't match anything in enum
+        or validation fails.
     """
     if arguments is None:
       return []
     elif isinstance(arguments, BASIC_SEQUENCE_TYPES):
       result = arguments[:]
+      _validate_sequence_depth(result)
     elif isinstance(arguments, enum.EnumMeta):
       result = arguments
     elif isinstance(arguments, str):
-      result = ast.literal_eval(arguments)
+      # Enhanced string validation
+      _validate_string_input(arguments)
+
+      try:
+        result = ast.literal_eval(arguments)
+      except (ValueError, SyntaxError) as e:
+        raise ValueError(
+            "Failed to parse \"{}\" as a python literal: {}".format(
+                arguments, e)
+        ) from e
 
       if not isinstance(result, BASIC_SEQUENCE_TYPES):
         raise TypeError(
             "Input string should represent a list or tuple, however it "
             "evaluated as a {}.".format(type(result).__name__)
         )
+
+      _validate_sequence_depth(result)
     else:
       raise TypeError("Unsupported type {}.".format(type(arguments).__name__))
 
@@ -160,23 +252,35 @@ class PossiblyNaiveDatetimeParser(flags.ArgumentParser):
     if isinstance(value, datetime.datetime):
       return value
 
+    # Enhanced input validation for datetime strings
+    if not isinstance(value, str):
+      raise TypeError("Expected string or datetime, got {}".format(
+          type(value).__name__))
+
+    if len(value.strip()) == 0:
+      raise ValueError("Empty datetime string not allowed")
+
+    if len(value) > 50:  # Reasonable limit for ISO datetime strings
+      raise ValueError("Datetime string too long: {} characters".format(
+          len(value)))
+
     # Handle ambiguous cases such as 2000-01-01+01:00, where the part after the
     # '+' sign looks like timezone info but is actually just the time.
     if value[10:11] in ("+", "-"):
       # plus/minus as separator between date and time (can be any character)
       raise ValueError(
-          f"datetime value {value!r} uses {value[10]!r} as separator "
+          "datetime value {!r} uses {!r} as separator "
           "between date and time (excluded to avoid confusion between "
           "time and offset). Use any other character instead, e.g. "
-          f"{value[:10] + 'T' + value[11:]!r}"
+          "{!r}".format(value, value[10], value[:10] + 'T' + value[11:])
       )
 
     try:
       return datetime.datetime.fromisoformat(value)
     except ValueError as e:
-      raise ValueError(f"invalid datetime value {value!r}: {e}") from None
+      raise ValueError("invalid datetime value {!r}: {}".format(value, e)) from None
 
-  def flag_type(self) -> str:
+  def flag_type(self):
     return "datetime.datetime"
 
 
@@ -203,20 +307,41 @@ class PossiblyNaiveTimeDeltaParser(flags.ArgumentParser):
     ]
     groups = []
     for name, unit in units:
-      groups.append(f"((?P<{name}>\\d+)\\s*{unit}\\s*)?")
+      groups.append("((?P<{}>\\d+)\\s*{}\\s*)?".format(name, unit))
     self._re = re.compile("".join(groups))
 
   def parse(self, value) -> datetime.timedelta:
     if isinstance(value, datetime.timedelta):
       return value
 
+    # Enhanced input validation for timedelta strings
+    if not isinstance(value, str):
+      raise TypeError("Expected string or timedelta, got {}".format(
+          type(value).__name__))
+
+    if len(value.strip()) == 0:
+      raise ValueError("Empty timedelta string not allowed")
+
+    if len(value) > 100:  # Reasonable limit for timedelta strings
+      raise ValueError("Timedelta string too long: {} characters".format(
+          len(value)))
+
     match = self._re.fullmatch(value.strip())
     if not match:
-      raise ValueError(f"invalid timedelta value {value!r}")
+      raise ValueError("invalid timedelta value {!r}".format(value))
 
     # Map back to kwargs that datetime.timedelta understands.
     kwargs = {k: int(v) for k, v in match.groupdict().items() if v}
-    return datetime.timedelta(**kwargs)
 
-  def flag_type(self) -> str:
+    # Validate the resulting timedelta isn't excessive
+    try:
+      result = datetime.timedelta(**kwargs)
+      # Check if the timedelta is reasonable (less than 1000 years)
+      if abs(result.total_seconds()) > 365.25 * 24 * 3600 * 1000:
+        raise ValueError("Timedelta too large: {}".format(result))
+      return result
+    except OverflowError as e:
+      raise ValueError("Timedelta values too large: {}".format(e)) from None
+
+  def flag_type(self):
     return "datetime.timedelta"
