@@ -202,8 +202,9 @@ class PossiblyNaiveTimeDeltaParser(flags.ArgumentParser):
         ("microseconds", "us"),
     ]
     groups = []
+    num_pattern = r"\d+(\.\d*)?|\.\d+"
     for name, unit in units:
-      groups.append(f"((?P<{name}>\\d+)\\s*{unit}\\s*)?")
+      groups.append(f"((?P<{name}>{num_pattern})\\s*{unit}\\s*)?")
     self._re = re.compile("".join(groups))
 
   def parse(self, value) -> datetime.timedelta:
@@ -215,7 +216,7 @@ class PossiblyNaiveTimeDeltaParser(flags.ArgumentParser):
       raise ValueError(f"invalid timedelta value {value!r}")
 
     # Map back to kwargs that datetime.timedelta understands.
-    kwargs = {k: int(v) for k, v in match.groupdict().items() if v}
+    kwargs = {k: float(v) for k, v in match.groupdict().items() if v}
     return datetime.timedelta(**kwargs)
 
   def flag_type(self) -> str:

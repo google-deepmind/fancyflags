@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ============================================================================
-"""Tests for argument_parsers."""
 
 import datetime
 
@@ -252,6 +251,16 @@ class PossiblyNaiveTimeDeltaFlagTest(parameterized.TestCase):
           value="53u",
           expected=datetime.timedelta(),
           raises=ValueError,
+      ),
+      dict(
+          testcase_name="timedelta.total_seconds()",
+          value=f"{datetime.timedelta(seconds=123).total_seconds()}s",
+          expected=datetime.timedelta(seconds=123),
+      ),
+      dict(
+          testcase_name="floats",
+          value="1.2h 12.3m 123.4s",
+          expected=datetime.timedelta(hours=1.2, minutes=12.3, seconds=123.4),
       ),
   )
   def test_parse(self, value, expected, raises=None):
