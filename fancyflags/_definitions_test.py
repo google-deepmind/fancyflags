@@ -226,6 +226,57 @@ class FancyflagsTest(absltest.TestCase):
       ff.EnumClass(DifferentEnum.C, MyEnum)
 
 
+class SingleTypeLiteralTest(parameterized.TestCase):
+
+  def test_define_valid_str_literal(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "valid_str_literal",
+        flag_values,
+        arg=ff.SingleTypeLiteral("a", ["a", "b"], "literal field"),
+    )
+    flag_values(("./program", ""))
+    self.assertEqual(flag_holder.value, {"arg": "a"})
+
+  def test_define_invalid_str_literal(self):
+    with self.assertRaisesRegex(ValueError, "value should be one of"):
+      ff.SingleTypeLiteral("c", ["a", "b"], "literal field")
+
+  def test_define_valid_int_literal(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "valid_int_literal",
+        flag_values,
+        arg=ff.SingleTypeLiteral(1, [1, 2, 3], "literal field"),
+    )
+    flag_values(("./program", ""))
+    self.assertEqual(flag_holder.value, {"arg": 1})
+
+  def test_define_invalid_int_literal(self):
+    with self.assertRaisesRegex(ValueError, "value should be one of"):
+      ff.SingleTypeLiteral(4, [1, 2, 3], "literal field")
+
+  def test_override_str_literal(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "override_str_literal",
+        flag_values,
+        arg=ff.SingleTypeLiteral("a", ["a", "b"], "literal field"),
+    )
+    flag_values(("./program", "--override_str_literal.arg=b"))
+    self.assertEqual(flag_holder.value, {"arg": "b"})
+
+  def test_override_int_literal(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "override_int_literal",
+        flag_values,
+        arg=ff.SingleTypeLiteral(1, [1, 2, 3], "literal field"),
+    )
+    flag_values(("./program", "--override_int_literal.arg=3"))
+    self.assertEqual(flag_holder.value, {"arg": 3})
+
+
 class ExtractDefaultsTest(absltest.TestCase):
 
   def test_valid_flat(self):

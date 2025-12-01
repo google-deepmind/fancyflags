@@ -388,6 +388,26 @@ class Integer(Item[int]):
     )
 
 
+class SingleTypeLiteral(Item[_T]):
+  """Defines a flag for a typing.Literal with values of the same type."""
+
+  def __init__(
+      self,
+      default: _T | None,
+      allowed_values: Iterable[_T],
+      help_string: str | None = None,
+      *,
+      required: bool = False,
+  ):
+    parser = _argument_parsers.LiteralParser(list(allowed_values))
+    super().__init__(
+        default,
+        help_string,
+        parser,
+        required=required,
+    )
+
+
 class Sequence(Item, Generic[_T]):
   r"""Defines a flag for a list or tuple of simple numeric types or strings.
 

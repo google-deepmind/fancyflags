@@ -4,6 +4,9 @@ All significant changes to this project will be documented here.
 
 ## [Unreleased]
 
+*   Added partial support for `Literal` type hints. Support for homogeneous
+    types `Literal[T, ...]`, with `Literals` of mixed types raising an error.
+
 ## [1.3]
 
 Release date: 2025-07-04

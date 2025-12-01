@@ -46,6 +46,9 @@ _UNSUPPORTED_ARGUMENT_TYPE = (
     "{annotation}\n"
 )
 _MISSING_DEFAULT_VALUE = "Missing default value for argument {name!r}"
+_INVALID_LITERAL_ARGS = (
+    "All arguments to Literal must have the same type, but got: {args}"
+)
 _is_enum = lambda type_: inspect.isclass(type_) and issubclass(type_, enum.Enum)
 
 
@@ -64,6 +67,10 @@ def is_union(type_: type[Any]) -> bool:
 
 def _is_init_var(type_: type[Any]) -> bool:
   return isinstance(type_, dataclasses.InitVar) or type_ is dataclasses.InitVar
+
+
+def _is_literal(type_: type[Any]) -> bool:
+  return typing.get_origin(type_) is Literal
 
 
 def get_typed_signature(fn: Callable[..., Any]) -> inspect.Signature:
@@ -119,6 +126,19 @@ def auto_from_value(
           )
       )
     field_type = union_args.pop()
+
+  if _is_literal(field_type):
+    args = typing.get_args(field_type)
+    if args:
+      field_type = type(args[0])
+      # We deliberately disallow mixing types and their subclasses. For example
+      # Literal[1, True] is not allowed, even though bool is a subclass of int.
+      # pylint: disable-next=unidiomatic-typecheck
+      if not all(type(arg) is field_type for arg in args):
+        raise TypeError(_INVALID_LITERAL_ARGS.format(args=args))
+    item_constructor = functools.partial(
+        _definitions.SingleTypeLiteral, allowed_values=args
+    )
 
   # Look up the corresponding Item to create.
   if _is_enum(field_type):

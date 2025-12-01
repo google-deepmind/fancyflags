@@ -23,6 +23,7 @@ import dataclasses
 import enum
 import re
 import sys
+from typing import Literal
 import unittest
 
 from absl import flags
@@ -137,6 +138,29 @@ class AutoTest(absltest.TestCase):
     }
     ff_dict = ff.auto(my_function)
     self.assertCountEqual(expected_settings, ff_dict)
+
+  def test_works_literal_fn(self):
+    def my_function(
+        literal_int: Literal[1, 2] = 1,
+        literal_str: Literal['a', 'b'] = 'a',
+    ):
+      del literal_int, literal_str  # Unused.
+
+    expected_settings = {
+        'literal_int': 1,
+        'literal_str': 'a',
+    }
+    ff_dict = ff.auto(my_function)
+    self.assertCountEqual(expected_settings, ff_dict)
+
+  def test_error_if_mixed_literal_types(self):
+    def my_function(a: Literal[1, 'b'] = 1):
+      del a
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, _auto._INVALID_LITERAL_ARGS.format(args=(1, 'b'))
+    ):
+      ff.auto(my_function)
 
   def test_works_class(self):
     class MyClass:

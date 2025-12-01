@@ -17,7 +17,7 @@ import copy
 import dataclasses
 import sys
 import typing
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 import unittest
 
 from absl import flags
@@ -64,6 +64,12 @@ class WithInitFalseAndInitValue:
 
   def __post_init__(self, init_var: int):
     self.init_var_holder = init_var
+
+
+@dataclasses.dataclass
+class WithLiteral:
+  literal_int: Literal[1, 2] = 1
+  literal_str: Literal['a', 'b'] = 'a'
 
 
 def greet(greeting: str = 'Hello', targets: Sequence[str] = ('world',)) -> str:
@@ -335,6 +341,20 @@ class DefineAutoFromValueTest(absltest.TestCase):
     ))
     expected = WithInitFalseAndInitValue(x=2.0, y=-1.5, init_var=10)
     self.assertEqual(expected.init_var_holder, 10)
+    self.assertEqual(expected, flag_holder.value())
+
+  def test_dataclass_with_literal(self):
+    flag_values = flags.FlagValues()
+    defaults = WithLiteral()
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'with_literal', defaults, flag_values=flag_values
+    )
+    flag_values((
+        './program',
+        '--with_literal.literal_int=2',
+        '--with_literal.literal_str=b',
+    ))
+    expected = WithLiteral(literal_int=2, literal_str='b')
     self.assertEqual(expected, flag_holder.value())
 
 

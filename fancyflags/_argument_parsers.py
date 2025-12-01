@@ -18,6 +18,7 @@ import ast
 import datetime
 import enum
 import re
+from typing import Any, Generic, Iterable, TypeVar
 
 from absl import flags
 
@@ -151,6 +152,51 @@ class MultiEnumParser(flags.ArgumentParser):
 
   def flag_type(self):
     return "multi enum"
+
+
+_T = TypeVar("_T")
+
+
+class LiteralParser(flags.ArgumentParser, Generic[_T]):
+  """Parser for typing.Literal values."""
+
+  def __init__(self, allowed_values: Iterable[_T]) -> None:
+    """Initializes the LiteralParser.
+
+    Args:
+      allowed_values: A non-empty iterable of values in the literal.
+
+    Raises:
+      ValueError: When allowed_values is empty or contains a mix of types.
+    """
+    self._allowed_values = tuple(allowed_values)
+    if not self._allowed_values:
+      raise ValueError(
+          f'allowed_values cannot be empty, found "{self._allowed_values}"'
+      )
+    self._type = type(self._allowed_values[0])
+    if not all(isinstance(value, self._type) for value in self._allowed_values):
+      raise ValueError("allowed_values contained mixed types")
+    super().__init__()
+
+  def parse(self, argument: Any) -> _T:
+    """Parses an argument against the allowed literal values."""
+    try:
+      converted_value = self._type(argument)
+    except (ValueError, TypeError) as e:
+      raise ValueError(
+          f'Failed to parse "{argument}" as type {self._type.__name__}.'
+      ) from e
+
+    if converted_value not in self._allowed_values:
+      raise ValueError(
+          f'value should be one of <{"|".join(map(str, self._allowed_values))}>'
+      )
+    else:
+      return converted_value
+
+  def flag_type(self) -> str:
+    return "literal"
 
 
 class PossiblyNaiveDatetimeParser(flags.ArgumentParser):

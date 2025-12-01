@@ -155,6 +155,49 @@ class MultiEnumParserTest(parameterized.TestCase):
       self.parser.parse(inputs)
 
 
+class LiteralParserTest(parameterized.TestCase):
+
+  def test_mixed_types_allowed_values_fails(self):
+    with self.assertRaisesRegex(ValueError, "contained mixed types"):
+      _argument_parsers.LiteralParser([1, "a"])
+
+  def test_empty_allowed_values_fails(self):
+    with self.assertRaisesRegex(ValueError, "cannot be empty"):
+      _argument_parsers.LiteralParser([])
+
+  def test_parse_string(self):
+    parser = _argument_parsers.LiteralParser(["a", "b"])
+    self.assertEqual(parser.parse("a"), "a")
+
+  def test_parse_invalid_string(self):
+    parser = _argument_parsers.LiteralParser(["a", "b"])
+    with self.assertRaisesRegex(ValueError, "value should be one of"):
+      parser.parse("c")
+
+  @parameterized.parameters(
+      ("1", 1),
+      (2, 2),
+      ("3", 3),
+  )
+  def test_parse_int(self, argument, expected):
+    parser = _argument_parsers.LiteralParser([1, 2, 3])
+    self.assertEqual(parser.parse(argument), expected)
+
+  @parameterized.parameters(
+      4,
+      "4",
+  )
+  def test_parse_invalid_int(self, argument):
+    parser = _argument_parsers.LiteralParser([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, "value should be one of"):
+      parser.parse(argument)
+
+  def test_parse_int_type_error(self):
+    parser = _argument_parsers.LiteralParser([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, "Failed to parse"):
+      parser.parse("a")
+
+
 class PossiblyNaiveDatetimeFlagTest(parameterized.TestCase):
 
   def test_parser_flag_type(self):
