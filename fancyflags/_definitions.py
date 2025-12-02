@@ -399,7 +399,7 @@ class SingleTypeLiteral(Item[_T]):
       *,
       required: bool = False,
   ):
-    parser = _argument_parsers.LiteralParser(list(allowed_values))
+    parser = _argument_parsers.LiteralParser(allowed_values)
     super().__init__(
         default,
         help_string,

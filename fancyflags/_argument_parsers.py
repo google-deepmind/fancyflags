@@ -175,7 +175,10 @@ class LiteralParser(flags.ArgumentParser, Generic[_T]):
           f'allowed_values cannot be empty, found "{self._allowed_values}"'
       )
     self._type = type(self._allowed_values[0])
-    if not all(isinstance(value, self._type) for value in self._allowed_values):
+    # We deliberately disallow mixing types and their subclasses. For example
+    # Literal[1, True] is not allowed, even though bool is a subclass of int.
+    # pylint: disable-next=unidiomatic-typecheck
+    if not all(type(value) is self._type for value in self._allowed_values):
       raise ValueError("allowed_values contained mixed types")
     super().__init__()
 

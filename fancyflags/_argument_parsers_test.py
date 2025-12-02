@@ -161,6 +161,10 @@ class LiteralParserTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, "contained mixed types"):
       _argument_parsers.LiteralParser([1, "a"])
 
+  def test_mixed_subtypes_allowed_values_fails(self):
+    with self.assertRaisesRegex(ValueError, "contained mixed types"):
+      _argument_parsers.LiteralParser([True, 1])
+
   def test_empty_allowed_values_fails(self):
     with self.assertRaisesRegex(ValueError, "cannot be empty"):
       _argument_parsers.LiteralParser([])
