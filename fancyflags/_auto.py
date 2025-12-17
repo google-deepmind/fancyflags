@@ -65,7 +65,7 @@ def is_union(type_: type[Any]) -> bool:
   return typing.get_origin(type_) in _UNION_TYPES
 
 
-def _is_init_var(type_: type[Any]) -> bool:
+def is_init_var(type_: type[Any]) -> bool:
   return isinstance(type_, dataclasses.InitVar) or type_ is dataclasses.InitVar
 
 
@@ -110,7 +110,7 @@ def auto_from_value(
 ) -> _definitions.Item | None:
   """Creates an `Item` for a single value."""
 
-  if _is_init_var(field_type):
+  if is_init_var(field_type):
     assert hasattr(
         field_type, "type"
     ), f"InitVar named {field_name} lacks a type attribute: {field_type}"

@@ -25,6 +25,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from fancyflags import _define_auto
 from fancyflags import _flags
+from fancyflags import _test_module_with_future_annotations
 
 
 @dataclasses.dataclass
@@ -64,6 +65,13 @@ class WithInitFalseAndInitValue:
 
   def __post_init__(self, init_var: int):
     self.init_var_holder = init_var
+
+
+@dataclasses.dataclass
+class SubclassWithForwardReference(
+    _test_module_with_future_annotations.DataclassWithForwardReference
+):
+  y: int = 0
 
 
 @dataclasses.dataclass
@@ -355,6 +363,21 @@ class DefineAutoFromValueTest(absltest.TestCase):
         '--with_literal.literal_str=b',
     ))
     expected = WithLiteral(literal_int=2, literal_str='b')
+    self.assertEqual(expected, flag_holder.value())
+
+  def test_dataclass_with_forward_reference(self):
+    # This tests that we can define flags for a class that inherits from a
+    # forward-referenced class. This mainly fails if trying to get the type
+    # hint for __init__.
+    flag_values = flags.FlagValues()
+    defaults = SubclassWithForwardReference(y=3)
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'subclass_with_forward_reference',
+        defaults,
+        flag_values=flag_values,
+    )
+    flag_values(('./program',))
+    expected = SubclassWithForwardReference(y=3)
     self.assertEqual(expected, flag_holder.value())
 
 

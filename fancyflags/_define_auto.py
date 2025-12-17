@@ -172,10 +172,15 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
   recursed = {}
 
   if dataclasses.is_dataclass(value):
+    # Get the names of the fields that are intended to be initialized.
+    init_field_names = {f.name for f in dataclasses.fields(value) if f.init}
+    names_to_types = typing.get_type_hints(type(value))
+    # We also want to include fields that are InitVar (they don't show up in
+    # dataclasses.fields), since we want to allow overwriting those via flags.
     names_to_types = {
         k: v
-        for k, v in typing.get_type_hints(type(value).__init__).items()
-        if k != "return"
+        for k, v in names_to_types.items()
+        if k in init_field_names or _auto.is_init_var(v)
     }
     names_to_values = {k: getattr(value, k) for k in names_to_types}
   elif isinstance(value, Mapping):
