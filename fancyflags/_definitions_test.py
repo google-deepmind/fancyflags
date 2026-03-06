@@ -723,5 +723,181 @@ class FlagAndItemEquivalence(parameterized.TestCase):
       self.assertEqual(flag_holder.value, shared_values["item"])
 
 
+class MultiGenericTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="int_defaults",
+          type_=int,
+          default=[1, 2, 3],
+          expected=[1, 2, 3],
+      ),
+      dict(
+          testcase_name="float_defaults",
+          type_=float,
+          default=[1.0, 2.0],
+          expected=[1.0, 2.0],
+      ),
+      dict(
+          testcase_name="str_defaults",
+          type_=str,
+          default=["a", "b"],
+          expected=["a", "b"],
+      ),
+      dict(
+          testcase_name="bool_defaults",
+          type_=bool,
+          default=[True, False],
+          expected=[True, False],
+      ),
+      dict(
+          testcase_name="none_default",
+          type_=int,
+          default=None,
+          expected=None,
+      ),
+  )
+  def test_defaults(self, type_, default, expected):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_multi_generic",
+        flag_values,
+        item=ff.Multi(type_, default, "generic multi"),
+    )
+    flag_values(("./program", ""))
+    self.assertEqual(flag_holder.value, {"item": expected})
+
+  def test_int_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_multi_int",
+        flag_values,
+        item=ff.Multi(int, [1], "multi int"),
+    )
+    flag_values((
+        "./program",
+        "--dict_with_multi_int.item=10",
+        "--dict_with_multi_int.item=20",
+    ))
+    expected = {"item": [10, 20]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_float_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_multi_float",
+        flag_values,
+        item=ff.Multi(float, [1.0], "multi float"),
+    )
+    flag_values((
+        "./program",
+        "--dict_with_multi_float.item=3.14",
+        "--dict_with_multi_float.item=2.718",
+    ))
+    expected = {"item": [3.14, 2.718]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_bool_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_multi_bool",
+        flag_values,
+        item=ff.Multi(bool, [False], "multi bool"),
+    )
+    flag_values((
+        "./program",
+        "--dict_with_multi_bool.item=true",
+        "--dict_with_multi_bool.item=false",
+    ))
+    expected = {"item": [True, False]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_unsupported_type_raises(self):
+    with self.assertRaisesRegex(TypeError, "Unsupported type for Multi"):
+      ff.Multi(list, [])  # pytype: disable=wrong-arg-types
+
+
+class TypedListTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="int_defaults",
+          type_=int,
+          default=[1, 2, 3],
+          expected=[1, 2, 3],
+      ),
+      dict(
+          testcase_name="float_defaults",
+          type_=float,
+          default=[1.0, 2.0],
+          expected=[1.0, 2.0],
+      ),
+      dict(
+          testcase_name="str_defaults",
+          type_=str,
+          default=["a", "b"],
+          expected=["a", "b"],
+      ),
+      dict(
+          testcase_name="bool_defaults",
+          type_=bool,
+          default=[True, False],
+          expected=[True, False],
+      ),
+      dict(
+          testcase_name="none_default",
+          type_=int,
+          default=None,
+          expected=None,
+      ),
+  )
+  def test_defaults(self, type_, default, expected):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_typed_list",
+        flag_values,
+        item=ff.TypedList(type_, default, "typed list"),
+    )
+    flag_values(("./program", ""))
+    self.assertEqual(flag_holder.value, {"item": expected})
+
+  def test_int_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_typed_list_int",
+        flag_values,
+        item=ff.TypedList(int, [1], "typed list int"),
+    )
+    flag_values(("./program", "--dict_with_typed_list_int.item=10,20,30"))
+    expected = {"item": [10, 20, 30]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_float_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_typed_list_float",
+        flag_values,
+        item=ff.TypedList(float, [1.0], "typed list float"),
+    )
+    flag_values(("./program", "--dict_with_typed_list_float.item=3.14,2.718"))
+    expected = {"item": [3.14, 2.718]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_bool_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = ff.DEFINE_dict(
+        "dict_with_typed_list_bool",
+        flag_values,
+        item=ff.TypedList(bool, [True], "typed list bool"),
+    )
+    flag_values(("./program", "--dict_with_typed_list_bool.item=true,false"))
+    expected = {"item": [True, False]}
+    self.assertEqual(flag_holder.value, expected)
+
+  def test_unsupported_type_raises(self):
+    with self.assertRaisesRegex(TypeError, "Unsupported type for TypedList"):
+      ff.TypedList(list, [])  # pytype: disable=wrong-arg-types
+
+
 if __name__ == "__main__":
   absltest.main()

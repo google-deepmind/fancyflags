@@ -41,6 +41,7 @@ from fancyflags._definitions import Enum
 from fancyflags._definitions import EnumClass
 from fancyflags._definitions import Float
 from fancyflags._definitions import Integer
+from fancyflags._definitions import Multi
 from fancyflags._definitions import MultiEnum
 from fancyflags._definitions import MultiEnumClass
 from fancyflags._definitions import MultiString
@@ -48,6 +49,7 @@ from fancyflags._definitions import Sequence
 from fancyflags._definitions import String
 from fancyflags._definitions import StringList
 from fancyflags._definitions import TimeDelta
+from fancyflags._definitions import TypedList
 
 # Class for adding new flag types.
 from fancyflags._definitions import Item

@@ -351,6 +351,8 @@ ff.Item             | Corresponding Flag
 `ff.MultiEnum`      | `ff.DEFINE_multi_enum`
 `ff.MultiEnumClass` | `flags.DEFINE_multi_enum_class`
 `ff.MultiString`    | `flags.DEFINE_multi_string`
+`ff.Multi`          | Generic `flags.DEFINE_multi_*`
+`ff.TypedList`      | Generic `flags.DEFINE_list`
 `ff.DateTime`       | -
 `ff.TimeDelta`      | -
 

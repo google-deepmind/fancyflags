@@ -270,3 +270,19 @@ class PossiblyNaiveTimeDeltaParser(flags.ArgumentParser):
 
   def flag_type(self) -> str:
     return "datetime.timedelta"
+
+
+class TypedListParser(flags.ArgumentParser, Generic[_T]):
+  """Parser for a comma-separated list with element-level type coercion."""
+
+  def __init__(self, element_parser: flags.ArgumentParser[_T]) -> None:
+    self._list_parser = flags.ListParser()
+    self._element_parser = element_parser
+
+  def parse(self, argument) -> list[_T]:
+    if not isinstance(argument, list):
+      argument = self._list_parser.parse(argument)
+    return [self._element_parser.parse(item) for item in argument]
+
+  def flag_type(self) -> str:
+    return "typed list"

@@ -17,7 +17,8 @@
 import collections
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence as Sequence_
 import enum
-from typing import Any, Generic, TypeVar
+import types
+from typing import Any, Generic, TypeAlias, TypeVar
 
 from absl import flags
 from fancyflags import _argument_parsers
@@ -25,6 +26,8 @@ from fancyflags import _flags
 
 
 _T = TypeVar("_T")
+_MultiItemType: TypeAlias = int | float | str | bool
+_MultiItemT = TypeVar("_MultiItemT", bound=_MultiItemType)
 _EnumT = TypeVar("_EnumT", bound=enum.Enum)
 _MappingT = TypeVar("_MappingT", bound=Mapping[str, Any])
 
@@ -604,6 +607,74 @@ class MultiString(MultiItem):
   def __init__(self, default, help_string=None):
     parser = flags.ArgumentParser()
     serializer = flags.ArgumentSerializer()
+    super().__init__(default, help_string, parser, serializer)
+
+
+_PARSER_BY_TYPE: Mapping[type[_MultiItemType], type[flags.ArgumentParser]] = (
+    types.MappingProxyType({
+        bool: flags.BooleanParser,
+        float: flags.FloatParser,
+        int: flags.IntegerParser,
+        str: flags.ArgumentParser,
+    })
+)
+
+
+class Multi(MultiItem[_MultiItemT]):
+  """A generic multi-flag for any supported type.
+
+  Supported types: int, str, float, bool.
+
+  Usage:
+    ff.Multi(int, [1, 2, 3], "my integers")
+    ff.Multi(str, ["a", "b"], "my strings")
+    ff.Multi(float, [1.0], "my float")
+    ff.Multi(bool, [True, False], "my bools")
+
+  Can be overridden on the command line by repeating the flag:
+    --my_flag=1 --my_flag=2
+  """
+
+  def __init__(
+      self,
+      type_: type[_MultiItemT],
+      default: Iterable[_MultiItemT] | None = None,
+      help_string: str | None = None,
+  ):
+    try:
+      parser_cls = _PARSER_BY_TYPE[type_]
+    except KeyError as e:
+      raise TypeError(f"Unsupported type for Multi: {type_}") from e
+    serializer = flags.ArgumentSerializer()
+    super().__init__(default, help_string, parser_cls(), serializer)
+
+
+class TypedList(Item[Iterable[_MultiItemT]]):
+  """A generic comma-separated list flag for any supported type.
+
+  Supported types: int, str, float, bool.
+
+  Usage:
+    ff.TypedList(int, [1, 2, 3], "my integers")
+    ff.TypedList(float, [1.0, 2.0], "my floats")
+    ff.TypedList(str, ["a", "b"], "my strings")
+    ff.TypedList(bool, [True, False], "my bools")
+
+  Can be overridden as --my_flag=1,2,3
+  """
+
+  def __init__(
+      self,
+      type_: type[_MultiItemT],
+      default: Iterable[_MultiItemT] | None = None,
+      help_string: str | None = None,
+  ):
+    try:
+      element_parser_cls = _PARSER_BY_TYPE[type_]
+    except KeyError as e:
+      raise TypeError(f"Unsupported type for TypedList: {type_}") from e
+    parser = _argument_parsers.TypedListParser(element_parser_cls())
+    serializer = flags.CsvListSerializer(",")
     super().__init__(default, help_string, parser, serializer)
 
 
