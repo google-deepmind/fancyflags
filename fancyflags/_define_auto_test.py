@@ -24,6 +24,7 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
 from fancyflags import _define_auto
+from fancyflags import _definitions
 from fancyflags import _flags
 from fancyflags import _test_module_with_future_annotations
 
@@ -457,6 +458,180 @@ class NarrowUnionTest(parameterized.TestCase):
     # This should fail to generate a flag.
     with self.assertRaisesRegex(flags.UnrecognizedFlagError, 'config.field'):
       flag_values(('./program', '--config.field=4'))
+
+
+@dataclasses.dataclass
+class WithSequences:
+  ids: Sequence[int] = ()
+  tags: Sequence[str] = ('default',)
+  score: float = 0.0
+
+
+@dataclasses.dataclass
+class InnerConfig:
+  ids: Sequence[int] = ()
+  tags: Sequence[str] = ('default',)
+  score: float = 0.0
+
+
+@dataclasses.dataclass
+class OuterConfig:
+  inner: InnerConfig = dataclasses.field(default_factory=InnerConfig)
+  name: str = 'default'
+
+
+class ParserOverridesFromInstanceTest(absltest.TestCase):
+
+  def test_typed_list_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'config',
+        WithSequences(),
+        flag_values=flag_values,
+        parser_overrides={'ids': _definitions.TypedList(int, (), 'ids')},
+    )
+    flag_values(('./program', '--config.ids=1,2,3'))
+    result = flag_holder.value()
+    self.assertEqual(result.ids, [1, 2, 3])
+    self.assertEqual(result.tags, ('default',))
+
+  def test_multi_override(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'config2',
+        WithSequences(),
+        flag_values=flag_values,
+        parser_overrides={
+            'tags': _definitions.Multi(str, ('default',), 'tags')
+        },
+    )
+    flag_values((
+        './program',
+        '--config2.tags=alpha',
+        '--config2.tags=beta',
+    ))
+    result = flag_holder.value()
+    self.assertEqual(result.tags, ['alpha', 'beta'])
+
+  def test_mixed_overrides(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'config3',
+        WithSequences(),
+        flag_values=flag_values,
+        parser_overrides={
+            'ids': _definitions.TypedList(int, (), 'ids'),
+            'tags': _definitions.Multi(str, ('default',), 'tags'),
+        },
+    )
+    flag_values((
+        './program',
+        '--config3.ids=10,20',
+        '--config3.tags=x',
+        '--config3.tags=y',
+        '--config3.score=9.5',
+    ))
+    result = flag_holder.value()
+    self.assertEqual(result.ids, [10, 20])
+    self.assertEqual(result.tags, ['x', 'y'])
+    self.assertAlmostEqual(result.score, 9.5)
+
+  def test_mixed_overrides_nested(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_from_instance(
+        'config4',
+        OuterConfig(),
+        flag_values=flag_values,
+        parser_overrides={
+            'inner.ids': _definitions.TypedList(int, (), 'ids'),
+            'inner.tags': _definitions.Multi(str, ('default',), 'tags'),
+        },
+    )
+    flag_values((
+        './program',
+        '--config4.inner.ids=10,20',
+        '--config4.inner.tags=x',
+        '--config4.inner.tags=y',
+        '--config4.inner.score=3.14',
+        '--config4.name=nested_test',
+    ))
+    result = flag_holder.value()
+    self.assertEqual(result.inner.ids, [10, 20])
+    self.assertEqual(result.inner.tags, ['x', 'y'])
+    self.assertAlmostEqual(result.inner.score, 3.14)
+    self.assertEqual(result.name, 'nested_test')
+
+  def test_conflicting_overrides_raises(self):
+    with self.assertRaisesRegex(ValueError, 'Unused parser_overrides'):
+      _define_auto.DEFINE_from_instance(
+          'config5',
+          OuterConfig(),
+          parser_overrides={
+              'inner': _definitions.String('x', 'inner'),
+              'inner.ids': _definitions.TypedList(int, (), 'ids'),
+          },
+      )
+
+  def test_unused_overrides_raises(self):
+    with self.assertRaisesRegex(ValueError, 'Unused parser_overrides'):
+      _define_auto.DEFINE_from_instance(
+          'config6',
+          WithSequences(),
+          parser_overrides={
+              'nonexistent': _definitions.TypedList(int, (), 'ids'),
+          },
+      )
+
+
+class ParserOverridesAutoTest(absltest.TestCase):
+
+  def test_define_auto_parser_overrides(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_auto(
+        'greet2',
+        greet,
+        flag_values=flag_values,
+        parser_overrides={
+            'targets': _definitions.TypedList(str, ['world'], 'targets'),
+        },
+    )
+    flag_values(('./program', '--greet2.targets=Alice,Bob'))
+    self.assertEqual(flag_holder.value(), 'Hello Alice, Bob')
+
+  def test_define_auto_nested_parser_overrides(self):
+    flag_values = flags.FlagValues()
+    flag_holder = _define_auto.DEFINE_auto(
+        'outer',
+        OuterConfig,
+        flag_values=flag_values,
+        parser_overrides={
+            'inner.ids': _definitions.TypedList(int, (), 'ids'),
+            'inner.tags': _definitions.Multi(str, ('default',), 'tags'),
+        },
+    )
+    flag_values((
+        './program',
+        '--outer.inner.ids=1,2,3',
+        '--outer.inner.tags=a',
+        '--outer.inner.tags=b',
+        '--outer.name=test',
+    ))
+    result = flag_holder.value()
+    inner = result.inner
+    self.assertIsInstance(inner, dict)
+    self.assertEqual(inner['ids'], [1, 2, 3])
+    self.assertEqual(inner['tags'], ['a', 'b'])
+    self.assertEqual(result.name, 'test')
+
+  def test_unused_overrides_raises(self):
+    with self.assertRaisesRegex(ValueError, 'Unused parser_overrides'):
+      _define_auto.DEFINE_auto(
+          'greet3',
+          greet,
+          parser_overrides={
+              'nonexistent': _definitions.TypedList(str, [], 'x'),
+          },
+      )
 
 
 if __name__ == '__main__':

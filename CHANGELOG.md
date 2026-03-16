@@ -6,6 +6,9 @@ All significant changes to this project will be documented here.
 
 *   Added partial support for `Literal` type hints. Support for homogeneous
     types `Literal[T, ...]`, with `Literals` of mixed types raising an error.
+*   Added `parser_overrides` argument to `ff.auto`, `ff.DEFINE_auto`, and
+    `ff.DEFINE_from_instance`, allowing custom `Item` or `MultiItem` overrides
+    for individual parameters.
 
 ## [1.3]
 

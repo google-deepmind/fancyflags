@@ -39,6 +39,16 @@ class MyEnum(enum.Enum):
   ONE = 1
 
 
+@dataclasses.dataclass
+class _NestedInner:
+  x: int = 0
+
+
+@dataclasses.dataclass
+class _NestedOuter:
+  inner: _NestedInner = dataclasses.field(default_factory=_NestedInner)
+
+
 class AutoTest(absltest.TestCase):
 
   def test_works_fn(self):
@@ -283,9 +293,18 @@ class AutoTest(absltest.TestCase):
       del a, b, c
 
     items = ff.auto(my_function)
-    self.assertTrue(items['a'].required)
-    self.assertFalse(items['b'].required)
-    self.assertFalse(items['c'].required)
+
+    items_a = items['a']
+    self.assertIsInstance(items_a, ff.Item)
+    self.assertTrue(items_a.required)
+
+    items_b = items['b']
+    self.assertIsInstance(items_b, ff.Item)
+    self.assertFalse(items_b.required)
+
+    items_c = items['c']
+    self.assertIsInstance(items_c, ff.Item)
+    self.assertFalse(items_c.required)
 
   def test_error_if_missing_type_annotation(self):
     def my_function(a: int = 10, b=1.0, c: Sequence[int] = (1, 2, 3)):
@@ -359,6 +378,23 @@ class AutoTest(absltest.TestCase):
 
     items = ff.auto(my_function, skip_params={'b'})
     self.assertSetEqual(set(items.keys()), {'a'})
+
+  def test_unused_parser_override_raises(self):
+    def my_function(a: int = 1, b: str = 'hi'):
+      del a, b
+
+    with self.assertRaisesRegex(ValueError, 'Unused parser_overrides'):
+      ff.auto(
+          my_function,
+          parser_overrides={'typo': ff.String('x', 'x')},
+      )
+
+  def test_unused_nested_parser_override_raises(self):
+    with self.assertRaisesRegex(ValueError, 'Unused parser_overrides'):
+      ff.auto(
+          _NestedOuter,
+          parser_overrides={'inner.nonexistent': ff.Integer(0, 'x')},
+      )
 
   @unittest.skipIf(
       sys.version_info < (3, 11),

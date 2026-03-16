@@ -218,6 +218,61 @@ possible to override keyword arguments in the call to `.value()`, e.g.
 test_settings = _DATA_SETTINGS.value(split='test')
 ```
 
+#### Parser overrides
+
+Both `ff.DEFINE_auto` and `ff.DEFINE_from_instance` accept an optional
+`parser_overrides` argument, which is a mapping from a parameter name to a
+`ff.Item` or `ff.MultiItem` instance. This is useful when the default flag
+parsing isn't desired. For example, to use `ff.TypedList` for a sequence
+instead of the default parser:
+
+```python
+@dataclasses.dataclass
+class DataSettings:
+  dataset_name: str = 'mnist'
+  batch_size: int = 128
+  augmentations: Sequence[str] = ('flip', 'crop')
+
+_DATA_SETTINGS = ff.DEFINE_auto(
+    'data',
+    DataSettings,
+    parser_overrides={
+        'augmentations': ff.TypedList(str, ('flip', 'crop'), 'augmentations'),
+    },
+)
+```
+
+This allows `--data.augmentations=flip,crop,rotate` on the command line,
+instead of the default parser which expects
+`--data.augmentations=[flip,crop,rotate]`.
+
+Dotted keys are supported for overriding fields within nested dataclasses:
+
+```python
+@dataclasses.dataclass
+class Augmentation:
+  transforms: Sequence[str] = ('flip', 'crop')
+  probability: float = 0.5
+
+@dataclasses.dataclass
+class DataSettings:
+  dataset_name: str = 'mnist'
+  augmentation: Augmentation = dataclasses.field(default_factory=Augmentation)
+
+_DATA_SETTINGS = ff.DEFINE_auto(
+    'data',
+    DataSettings,
+    parser_overrides={
+        'augmentation.transforms': ff.TypedList(
+            str, ('flip', 'crop'), 'transforms'
+        ),
+    },
+)
+```
+
+This allows `--data.augmentation.transforms=flip,crop,rotate` on the command
+line.
+
 ### `DEFINE_from_instance`
 
 `ff.DEFINE_from_instance` automatically generates a flag declaration
@@ -254,6 +309,9 @@ Materialising a value works the same as for `ff.DEFINE_auto`:
 ```python
 settings = _SETTINGS.value()
 ```
+
+`ff.DEFINE_from_instance` also supports `parser_overrides` in the same way as
+`ff.DEFINE_auto` (see [parser overrides](#parser-overrides) above).
 
 ## Defining a dict flag from a function or constructor.
 

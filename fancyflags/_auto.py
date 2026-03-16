@@ -30,6 +30,59 @@ from fancyflags import _definitions
 
 _T = TypeVar("_T")
 
+
+def _collect_all_keys(
+    items: Mapping[str, Any],
+    prefix: str = "",
+) -> set[str]:
+  """Get all of the keys from a nested mapping.
+
+  For example, given `{'a': Item(...), 'b': {'c': Item(...)}}`, this returns
+  `{'a', 'b', 'b.c'}`.
+
+  Args:
+    items: A mapping from field names to Items or additional mappings.
+    prefix: Dotted prefix to prepend to all paths (used during recursion).
+
+  Returns:
+    The set of all dotted keys defined in the mapping.
+  """
+  paths = set()
+  for key, value in items.items():
+    full_path = f"{prefix}{key}"
+    paths.add(full_path)
+    if isinstance(value, Mapping):
+      paths.update(_collect_all_keys(value, f"{full_path}."))
+  return paths
+
+
+def _check_for_unused_overrides(
+    items: Mapping[str, Any],
+    parser_overrides: Mapping[str, Any],
+) -> None:
+  """Raises ValueError if any parser_overrides are not being used.
+
+  Compares the keys in `parser_overrides` against all items created by `auto()`.
+  If any override key does not match an item, it is reported as unused.
+
+  Args:
+    items: The nested mapping of fancyflag items produced by `auto()`.
+    parser_overrides: The user-provided parser overrides to validate.
+
+  Raises:
+    ValueError: If any keys in parser_overrides are unused.
+  """
+  if not parser_overrides:
+    return
+  defined_paths = _collect_all_keys(items)
+  unused = set(parser_overrides) - defined_paths
+  if unused:
+    raise ValueError(
+        f"Unused parser_overrides keys: {sorted(unused)}. "
+        "These keys do not match any parameter paths defined by the callable."
+    )
+
+
 _ITEM_BY_TYPE = {
     bool: _definitions.Boolean,
     datetime.datetime: _definitions.DateTime,
@@ -187,7 +240,10 @@ def auto(
     *,
     strict: bool = True,
     skip_params: Collection[str] = (),
-) -> Mapping[str, _definitions.Item]:
+    parser_overrides: (
+        Mapping[str, _definitions.Item | _definitions.MultiItem] | None
+    ) = None,
+) -> Mapping[str, _definitions.Item | _definitions.MultiItem]:
   """Automatically builds fancyflag definitions from a callable's signature.
 
   Example usage:
@@ -211,6 +267,10 @@ def auto(
       non-default values, or values with defaults that can not be easily turned
       into a flag or overriden on the CLI.
     skip_params: Optional parameter names to skip defining flags for.
+    parser_overrides: Optional mapping from parameter names to fancyflags
+      `Item`s, to override the automatically generated fancyflags. Dotted keys
+      (e.g. `'inner.field'`) are supported for overriding fields within nested
+      dataclass parameters.
 
   Returns:
     Mapping from parameter names to fancyflags `Item`s, to be splatted into
@@ -225,6 +285,9 @@ def auto(
   if not callable(callable_fn):
     raise TypeError(f"Not a callable: {callable_fn}.")
 
+  if not parser_overrides:
+    parser_overrides = {}
+
   # Work around issue with metaclass-wrapped classes, such as Sonnet v2 modules.
   if isinstance(callable_fn, type):
     signature = get_typed_signature(callable_fn.__init__)
@@ -234,12 +297,32 @@ def auto(
     signature = get_typed_signature(callable_fn)
     parameters = signature.parameters.values()
 
-  items: MutableMapping[str, _definitions.Item] = {}
+  items: MutableMapping[str, _definitions.Item | _definitions.MultiItem] = {}
   parameters: Iterable[inspect.Parameter]
   for param in parameters:
     if param.name in skip_params:
       continue
     try:
+      # First check if there is a parser override for this parameter.
+      if parser_overrides and param.name in parser_overrides:
+        items[param.name] = parser_overrides[param.name]
+        continue
+      # Next check if there are parser overrides for child parameters.
+      if parser_overrides:
+        prefix = f"{param.name}."
+        child_overrides = {
+            k[len(prefix) :]: v
+            for k, v in parser_overrides.items()
+            if k.startswith(prefix)
+        }
+        if child_overrides:
+          sub_items = auto(
+              param.annotation,
+              strict=strict,
+              parser_overrides=child_overrides,
+          )
+          items[param.name] = sub_items
+          continue
       if param.annotation is inspect.Parameter.empty:
         raise TypeError(_MISSING_TYPE_ANNOTATION.format(name=param.name))
       if item := auto_from_value(param.name, param.annotation, param.default):
@@ -252,4 +335,6 @@ def auto(
           f"parameter {param.name} with type {param.annotation}; "
           "skipping because strict=False..."
       )
+
+  _check_for_unused_overrides(items, parser_overrides)
   return items

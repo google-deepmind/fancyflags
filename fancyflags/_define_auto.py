@@ -25,6 +25,8 @@ from fancyflags import _auto
 from fancyflags import _definitions
 from fancyflags import _flags
 
+_ItemOrMultiItem = _definitions.Item | _definitions.MultiItem
+
 
 class _NamedCallable(Protocol):
   __name__: str
@@ -47,6 +49,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     *,
     strict: bool = True,
     skip_params: Collection[str] = (),
+    parser_overrides: Mapping[str, _ItemOrMultiItem] | None = None,
 ) -> flags.FlagHolder[_F]:
   """Defines a flag for an `ff.auto`-compatible constructor or callable.
 
@@ -87,11 +90,20 @@ def DEFINE_auto(  # pylint: disable=invalid-name
     strict: Whether to skip flag definitions for arguments without type hints,
       or for arguments with unknown types.
     skip_params: Optional parameter names to skip defining flags for.
+    parser_overrides: Optional mapping from parameter names to fancyflags
+      `Item`s, to override the automatically generated fancyflags. Dotted keys
+      (e.g. `'inner.field'`) are supported for overriding fields within nested
+      dataclass parameters.
 
   Returns:
     A `flags.FlagHolder`.
   """
-  arguments = _auto.auto(fn, strict=strict, skip_params=skip_params)
+  arguments = _auto.auto(
+      fn,
+      strict=strict,
+      skip_params=skip_params,
+      parser_overrides=parser_overrides,
+  )
   # Define the individual flags.
   defaults = _definitions.define_flags(name, arguments, flag_values=flag_values)
   help_string = help_string or f"{fn.__module__}.{fn.__name__}"
@@ -151,6 +163,7 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     help_string: str | None = None,
     flag_values: flags.FlagValues = flags.FLAGS,
     should_recurse: Callable[[Any], bool] = _should_recurse_from_value,
+    parser_overrides: Mapping[str, _ItemOrMultiItem] | None = None,
 ) -> flags.FlagHolder[Callable[..., _D]]:
   """Recursively defines flags from a mapping or dataclass instance.
 
@@ -165,6 +178,10 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     should_recurse: An optional custom function that takes a value and returns
       whether it should be recursively defined as a flag. By default this will
       recurse on dataclasses and mappings.
+    parser_overrides: Optional mapping from parameter names to fancyflags
+      `Item`s, to override the automatically generated fancyflags. Dotted keys
+      (e.g. `'inner.field'`) are supported for overriding fields within nested
+      dataclass parameters.
 
   Returns:
     A `flags.FlagHolder`.
@@ -192,11 +209,21 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
   for field_name, field_value in names_to_values.items():
     if should_recurse(field_value):
       component_name = f"{name}.{field_name}"
+      if parser_overrides:
+        prefix = f"{field_name}."
+        child_overrides = {
+            k[len(prefix) :]: v
+            for k, v in parser_overrides.items()
+            if k.startswith(prefix)
+        } or None
+      else:
+        child_overrides = None
       flagholder = DEFINE_from_instance(
           component_name,
           value=field_value,
           flag_values=flag_values,
           should_recurse=should_recurse,
+          parser_overrides=child_overrides,
       )
       recursed[field_name] = flagholder
 
@@ -206,6 +233,9 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     if field_name in recursed:
       continue
     field_value = names_to_values[field_name]
+    if parser_overrides and field_name in parser_overrides:
+      remaining_params[field_name] = parser_overrides[field_name]
+      continue
     field_type = _maybe_narrow_union_type(field_type, field_value)
     try:
       # pylint:disable-next=protected-access
@@ -222,6 +252,25 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     else:
       # Use the field_value if the type isn't supported by ff for overriding.
       unsupported_params[field_name] = field_value
+
+  # Validate that all parser_overrides keys were used. We track used
+  # keys from two sources: direct overrides (in remaining_params) and child
+  # overrides (keys prefixed with a recursed field name).
+  if parser_overrides:
+    used_overrides = set()
+    for field_name in remaining_params:
+      if field_name in parser_overrides:
+        used_overrides.add(field_name)
+    for field_name in recursed:
+      prefix = f"{field_name}."
+      used_overrides.update(k for k in parser_overrides if k.startswith(prefix))
+    unused_overrides = set(parser_overrides) - used_overrides
+    if unused_overrides:
+      raise ValueError(
+          f"Unused parser_overrides keys: {sorted(unused_overrides)}. "
+          "These keys do not match any parameter paths defined by the "
+          "callable."
+      )
 
   defaults = _definitions.define_flags(
       name, remaining_params, flag_values=flag_values
