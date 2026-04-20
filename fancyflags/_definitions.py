@@ -219,7 +219,7 @@ class Item(Generic[_T]):
   def __init__(
       self,
       default: _T | None,
-      help_string: str,
+      help_string: str | None,
       parser: flags.ArgumentParser,
       serializer: flags.ArgumentSerializer | None = None,
       *,
