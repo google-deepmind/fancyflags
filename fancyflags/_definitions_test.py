@@ -686,7 +686,7 @@ class FlagAndItemEquivalence(parameterized.TestCase):
   def test_equivalence(
       self,
       define_function: Callable[..., flags.FlagHolder],
-      item_constructor: type(ff.Item),
+      item_constructor: Callable[..., ff.Item],
       default: Any,
       override: str,
   ):

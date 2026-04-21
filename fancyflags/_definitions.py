@@ -522,7 +522,7 @@ class MultiItem(Generic[_T]):
   def __init__(
       self,
       default: None | _T | Iterable[_T],
-      help_string: str,
+      help_string: str | None,
       parser: flags.ArgumentParser[Sequence_[_T]],
       serializer: flags.ArgumentSerializer[Sequence_[_T]] | None = None,
   ):
