@@ -257,10 +257,7 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
   # keys from two sources: direct overrides (in remaining_params) and child
   # overrides (keys prefixed with a recursed field name).
   if parser_overrides:
-    used_overrides = set()
-    for field_name in remaining_params:
-      if field_name in parser_overrides:
-        used_overrides.add(field_name)
+    used_overrides = set(remaining_params) & set(parser_overrides)
     for field_name in recursed:
       prefix = f"{field_name}."
       used_overrides.update(k for k in parser_overrides if k.startswith(prefix))
