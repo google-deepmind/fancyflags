@@ -272,19 +272,17 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
   for field_name, field_info in fields.items():
     if field_name in recursed:
       continue
-    field_value = field_info.value
-    field_type = field_info.type_
     if parser_overrides and field_name in parser_overrides:
       remaining_params[field_name] = parser_overrides[field_name]
       continue
-    field_type = _maybe_narrow_union_type(field_type, field_value)
+    field_type = _maybe_narrow_union_type(field_info.type_, field_info.value)
     try:
       # pylint:disable-next=protected-access
-      item = _auto.auto_from_value(field_name, field_type, field_value)
+      item = _auto.auto_from_value(field_name, field_type, field_info.value)
     except Exception as e:  # pylint:disable=broad-exception-caught
       warnings.warn(
           f"Caught an exception ({e}) when defining flags for "
-          f"parameter {field_name} with type {field_value}; "
+          f"parameter {field_name} with type {field_type}; "
           "skipping because strict=False..."
       )
       item = None
@@ -292,7 +290,7 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
       remaining_params[field_name] = item
     else:
       # Use the field_value if the type isn't supported by ff for overriding.
-      unsupported_params[field_name] = field_value
+      unsupported_params[field_name] = field_info.value
 
   # Validate that all parser_overrides keys were used. We track used
   # keys from two sources: direct overrides (in remaining_params) and child
@@ -302,12 +300,10 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     for field_name in recursed:
       prefix = f"{field_name}."
       used_overrides.update(k for k in parser_overrides if k.startswith(prefix))
-    unused_overrides = set(parser_overrides) - used_overrides
-    if unused_overrides:
+    if unused_overrides := set(parser_overrides) - used_overrides:
       raise ValueError(
           f"Unused parser_overrides keys: {sorted(unused_overrides)}. "
-          "These keys do not match any parameter paths defined by the "
-          "callable."
+          "These keys do not match the field names of the provided object."
       )
 
   defaults = _definitions.define_flags(
