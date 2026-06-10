@@ -14,10 +14,11 @@
 # ============================================================================
 """Automatic flags via ff.auto-compatible callables and example structures."""
 
-from collections.abc import Callable, Collection, Mapping
+import abc
+from collections.abc import Callable, Collection, Mapping, Sequence
 import dataclasses
 import typing
-from typing import Any, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 import warnings
 
 from absl import flags
@@ -121,12 +122,7 @@ def DEFINE_auto(  # pylint: disable=invalid-name
       flag_values=flag_values,
   )
 
-
-class _IsDataclass(Protocol):
-  __dataclass_fields__: dict[str, dataclasses.Field[Any]]
-
-
-_D = TypeVar("_D", bound=_IsDataclass | Mapping[str, Any])
+_D = TypeVar("_D")
 
 
 def _maybe_narrow_union_type(
@@ -152,9 +148,59 @@ def _maybe_narrow_union_type(
     # leave decisions on how to handle the union to another layer.
     return field_type
 
+T = TypeVar("T")
 
-def _should_recurse_from_value(value: Any) -> bool:
-  return dataclasses.is_dataclass(value) or isinstance(value, Mapping)
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class TypedValue(Generic[T]):
+  """Container for a value and its type annotation."""
+
+  value: T
+  type_: type[T]
+
+
+class StructureHandler(abc.ABC):
+  """Interface for extracting structure information from an instance.
+
+  Defines how to decompose a structured value (such as a
+  dataclass or mapping) into its field names, types, and values, enabling
+  `DEFINE_from_instance` to support custom structures without special-casing.
+  """
+
+  @abc.abstractmethod
+  def supports(self, value: Any) -> bool:
+    """Returns True if this handler can handle the given value."""
+
+  @abc.abstractmethod
+  def typed_values(self, value: Any) -> Mapping[str, TypedValue]:
+    """Returns a mapping from field names to TypedValues."""
+
+
+class DataclassHandler(StructureHandler):
+  """Handles dataclass instances for `DEFINE_from_instance`."""
+
+  def supports(self, value: Any) -> bool:
+    return dataclasses.is_dataclass(value) and not isinstance(value, type)
+
+  def typed_values(self, value: Any) -> Mapping[str, TypedValue]:
+    init_field_names = {f.name for f in dataclasses.fields(value) if f.init}
+    result = {}
+    for field_name, field_value in typing.get_type_hints(type(value)).items():
+      if field_name in init_field_names or _auto.is_init_var(field_value):
+        result[field_name] = TypedValue(
+            value=getattr(value, field_name), type_=field_value
+        )
+    return result
+
+
+class MappingHandler(StructureHandler):
+  """Handles `Mapping` instances for `DEFINE_from_instance`."""
+
+  def supports(self, value: Any) -> bool:
+    return isinstance(value, Mapping)
+
+  def typed_values(self, value: Any) -> Mapping[str, TypedValue]:
+    return {k: TypedValue(value=v, type_=type(v)) for k, v in value.items()}
 
 
 def DEFINE_from_instance(  # pylint: disable=invalid-name
@@ -162,52 +208,46 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
     value: _D,
     help_string: str | None = None,
     flag_values: flags.FlagValues = flags.FLAGS,
-    should_recurse: Callable[[Any], bool] = _should_recurse_from_value,
+    *,
+    extra_handlers: Sequence[StructureHandler] = (),
     parser_overrides: Mapping[str, _ItemOrMultiItem] | None = None,
 ) -> flags.FlagHolder[Callable[..., _D]]:
-  """Recursively defines flags from a mapping or dataclass instance.
+  """Recursively defines flags from a structured instance.
 
   Args:
     name: The name for the top-level flag.
-    value: An instance of a dataclass or a mapping. The structure will be used
-      to define nested flags. The return value of the flagholder will be a
-      callable that returns a structure matching the provided dataclass or
-      mapping.
+    value: An instance of a supported structure type. By default, dataclass
+      instances and mappings are supported, including nested structures. Support
+      for custom structure types can be provided via `extra_handlers`. The
+      return value of the flagholder will be a callable that returns a structure
+      matching the provided value.
     help_string: Optional help string for this flag.
     flag_values: An optional `flags.FlagValues` instance.
-    should_recurse: An optional custom function that takes a value and returns
-      whether it should be recursively defined as a flag. By default this will
-      recurse on dataclasses and mappings.
+    extra_handlers: Additional `StructureHandler` implementations to support
+      custom structure types. These are checked before the built-in handlers for
+      dataclasses and mappings.
     parser_overrides: Optional mapping from parameter names to fancyflags
       `Item`s, to override the automatically generated fancyflags. Dotted keys
       (e.g. `'inner.field'`) are supported for overriding fields within nested
-      dataclass parameters.
+      parameters.
 
   Returns:
     A `flags.FlagHolder`.
   """
-  recursed = {}
+  handlers = (*extra_handlers, DataclassHandler(), MappingHandler())
 
-  if dataclasses.is_dataclass(value):
-    # Get the names of the fields that are intended to be initialized.
-    init_field_names = {f.name for f in dataclasses.fields(value) if f.init}
-    names_to_types = typing.get_type_hints(type(value))
-    # We also want to include fields that are InitVar (they don't show up in
-    # dataclasses.fields), since we want to allow overwriting those via flags.
-    names_to_types = {
-        k: v
-        for k, v in names_to_types.items()
-        if k in init_field_names or _auto.is_init_var(v)
-    }
-    names_to_values = {k: getattr(value, k) for k in names_to_types}
-  elif isinstance(value, Mapping):
-    names_to_values = value
-    names_to_types = {k: type(v) for k, v in value.items()}
+  for handler in handlers:
+    if handler.supports(value):
+      break
   else:
-    raise TypeError(f"Not a dataclass instance or mapping: {value}.")
+    raise TypeError(f"No handler supports {type(value).__name__}: {value!r}")
 
-  for field_name, field_value in names_to_values.items():
-    if should_recurse(field_value):
+  fields = handler.typed_values(value)
+
+  recursed = {}
+  for field_name, field_info in fields.items():
+    field_value = field_info.value
+    if any(h.supports(field_value) for h in handlers):
       component_name = f"{name}.{field_name}"
       if parser_overrides:
         prefix = f"{field_name}."
@@ -222,17 +262,18 @@ def DEFINE_from_instance(  # pylint: disable=invalid-name
           component_name,
           value=field_value,
           flag_values=flag_values,
-          should_recurse=should_recurse,
+          extra_handlers=extra_handlers,
           parser_overrides=child_overrides,
       )
       recursed[field_name] = flagholder
 
   remaining_params = {}
   unsupported_params = {}
-  for field_name, field_type in names_to_types.items():
+  for field_name, field_info in fields.items():
     if field_name in recursed:
       continue
-    field_value = names_to_values[field_name]
+    field_value = field_info.value
+    field_type = field_info.type_
     if parser_overrides and field_name in parser_overrides:
       remaining_params[field_name] = parser_overrides[field_name]
       continue

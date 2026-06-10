@@ -634,5 +634,52 @@ class ParserOverridesAutoTest(absltest.TestCase):
       )
 
 
+class StructureHandlerTest(absltest.TestCase):
+
+  def test_dataclass_handler_supports(self):
+    handler = _define_auto.DataclassHandler()
+    self.assertTrue(handler.supports(Point()))
+    self.assertFalse(handler.supports({'a': 1}))
+    self.assertFalse(handler.supports(42))
+    # Should not support the class itself, only instances.
+    self.assertFalse(handler.supports(Point))
+
+  def test_mapping_handler_supports(self):
+    handler = _define_auto.MappingHandler()
+    self.assertTrue(handler.supports({'a': 1}))
+    self.assertFalse(handler.supports(Point()))
+    self.assertFalse(handler.supports(42))
+
+  def test_dataclass_handler_typed_values(self):
+    handler = _define_auto.DataclassHandler()
+    point = Point(x=1.0, y=2.0, label='p')
+    fields = handler.typed_values(point)
+    self.assertEqual(
+        fields,
+        {
+            'x': _define_auto.TypedValue(value=1.0, type_=float),
+            'y': _define_auto.TypedValue(value=2.0, type_=float),
+            'label': _define_auto.TypedValue(value='p', type_=str),
+            'enable': _define_auto.TypedValue(value=False, type_=bool),
+        },
+    )
+
+  def test_mapping_handler_typed_values(self):
+    handler = _define_auto.MappingHandler()
+    mapping = {'x': 1.0, 'y': 'hello'}
+    fields = handler.typed_values(mapping)
+    self.assertEqual(
+        fields,
+        {
+            'x': _define_auto.TypedValue(value=1.0, type_=float),
+            'y': _define_auto.TypedValue(value='hello', type_=str),
+        },
+    )
+
+  def test_unsupported_value_raises(self):
+    with self.assertRaisesRegex(TypeError, 'No handler supports'):
+      _define_auto.DEFINE_from_instance('config', 42)
+
+
 if __name__ == '__main__':
   absltest.main()
